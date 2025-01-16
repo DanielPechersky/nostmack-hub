@@ -1,13 +1,10 @@
 import asyncio
-import math
-import time
 
 import aiohttp
 
 
 WLED = "living.local"
 UPDATE_FREQUENCY = 0.02
-value = 0
 
 
 # gamma correction
@@ -33,48 +30,77 @@ GAMMA = [
 # fmt: on
 
 
-def brightness():
+class GearListener:
+    def __init__(self, sensitivity) -> None:
+        self.values = [0, 0]
+        self.sensitivity = sensitivity
+
+    @property
+    def brightness_value(self):
+        return self.values[0]
+
+    @property
+    def effect_intensity_value(self):
+        return self.values[1]
+
+    def brightness(self) -> int:
+        return boomerang(self.brightness_value)
+
+    def effect_intensity(self) -> int:
+        return boomerang(self.effect_intensity_value)
+
+    def update_value(self, id, count):
+        self.values[id] += count * self.sensitivity[id]
+        self.values[id] %= 512
+
+    async def listen(self):
+        async def callback(reader, _writer):
+            import struct
+
+            id = await reader.readexactly(4)
+            (id,) = struct.unpack("!i", id)
+            print(f"Connected to gear with ID {id}")
+
+            while True:
+                bytes = await reader.readexactly(2)
+                (count,) = struct.unpack("!h", bytes)
+                print(f"ID {id} count: {count}")
+                self.update_value(id, count)
+
+        await asyncio.start_server(callback, "0.0.0.0", 1234)
+
+
+def boomerang(value: int) -> int:
     if value < 256:
         return value
     else:
         return 512 - 1 - value
 
 
-async def listen_to_gears():
-    async def callback(reader, _writer):
-        import struct
-
-        global value
-
-        id = await reader.readexactly(4)
-        (id,) = struct.unpack("!i", id)
-        print(f"Connected to gear with ID {id}")
-
-        while True:
-            bytes = await reader.readexactly(2)
-            (count,) = struct.unpack("!h", bytes)
-            print(f"Received count: {count}")
-            value += count * 10
-            value %= 512
-            print(f"New brightness: {brightness()}")
-
-    await asyncio.start_server(callback, "0.0.0.0", 1234)
-
-
 async def main():
+    gear_listener = GearListener(sensitivity=[5, 5])
+
     async with asyncio.TaskGroup() as tg, aiohttp.ClientSession() as session:
-        tg.create_task(listen_to_gears())
+        tg.create_task(gear_listener.listen())
 
         try:
             while True:
-                payload = {"bri": GAMMA[brightness()]}
+                payload = {
+                    "bri": GAMMA[gear_listener.brightness()],
+                    "seg": {
+                        "start": 0,
+                        "stop": 300,
+                        "sx": gear_listener.effect_intensity(),
+                    },
+                }
+                print(f"New payload: {payload}")
 
                 async with session.post(
                     f"http://{WLED}/json/state",
                     json=payload,
                 ) as response:
                     if not response.ok:
-                        print(f"Failed to set brightness: {response}")
+                        print(f"Failed to talk to WLED: {response}")
 
                 await asyncio.sleep(UPDATE_FREQUENCY)
         except KeyboardInterrupt:
