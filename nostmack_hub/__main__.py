@@ -46,6 +46,10 @@ async def listen_to_gears():
 
         global value
 
+        id = await reader.readexactly(4)
+        (id,) = struct.unpack("!i", id)
+        print(f"Connected to gear with ID {id}")
+
         while True:
             bytes = await reader.readexactly(2)
             (count,) = struct.unpack("!h", bytes)
