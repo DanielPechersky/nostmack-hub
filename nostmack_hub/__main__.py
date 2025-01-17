@@ -1,4 +1,5 @@
 import asyncio
+from typing import Protocol
 
 import aiohttp
 
@@ -30,28 +31,43 @@ GAMMA = [
 # fmt: on
 
 
-class GearListener:
-    def __init__(self, sensitivity) -> None:
-        self.values = [0, 0]
+class Effect[T](Protocol):
+    def get(self) -> T:
+        raise NotImplementedError
+
+    def update(self, counts: int):
+        raise NotImplementedError
+
+
+class BrightnessEffect(Effect):
+    def __init__(self, sensitivity):
+        self.value = 0
         self.sensitivity = sensitivity
 
-    @property
-    def brightness_value(self):
-        return self.values[0]
+    def get(self):
+        return boomerang(self.value)
 
-    @property
-    def effect_intensity_value(self):
-        return self.values[1]
+    def update(self, counts):
+        self.value += counts * self.sensitivity
+        self.value %= 512
 
-    def brightness(self) -> int:
-        return boomerang(self.brightness_value)
 
-    def effect_intensity(self) -> int:
-        return boomerang(self.effect_intensity_value)
+class EffectIntensityEffect(Effect):
+    def __init__(self, sensitivity):
+        self.value = 0
+        self.sensitivity = sensitivity
 
-    def update_value(self, id, count):
-        self.values[id] += count * self.sensitivity[id]
-        self.values[id] %= 512
+    def get(self):
+        return boomerang(self.value)
+
+    def update(self, counts):
+        self.value += counts * self.sensitivity
+        self.value %= 512
+
+
+class EspGearListener:
+    def __init__(self, effects: dict[int, Effect]) -> None:
+        self.effects = effects
 
     async def listen(self):
         async def callback(reader, _writer):
@@ -65,7 +81,7 @@ class GearListener:
                 bytes = await reader.readexactly(2)
                 (count,) = struct.unpack("!h", bytes)
                 print(f"ID {id} count: {count}")
-                self.update_value(id, count)
+                self.effects[id].update(count)
 
         await asyncio.start_server(callback, "0.0.0.0", 1234)
 
@@ -78,7 +94,14 @@ def boomerang(value: int) -> int:
 
 
 async def main():
-    gear_listener = GearListener(sensitivity=[5, 5])
+    brightness = BrightnessEffect(5)
+    effect_intensity = EffectIntensityEffect(5)
+    gear_listener = EspGearListener(
+        {
+            0: brightness,
+            1: effect_intensity,
+        }
+    )
 
     async with asyncio.TaskGroup() as tg, aiohttp.ClientSession() as session:
         tg.create_task(gear_listener.listen())
@@ -86,11 +109,11 @@ async def main():
         try:
             while True:
                 payload = {
-                    "bri": GAMMA[gear_listener.brightness()],
+                    "bri": GAMMA[brightness.get()],
                     "seg": {
                         "start": 0,
                         "stop": 300,
-                        "sx": gear_listener.effect_intensity(),
+                        "sx": effect_intensity.get(),
                     },
                 }
                 print(f"New payload: {payload}")
