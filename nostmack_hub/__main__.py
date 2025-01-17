@@ -1,10 +1,20 @@
 import asyncio
+import os
 from typing import Protocol
 
 import aiohttp
 
 
-WLED = "living.local"
+def checked_getenv(var):
+    import os
+
+    value = os.getenv(var)
+    if value is None:
+        raise ValueError(f"Environment variable {var} is not set.")
+    return value
+
+
+WLED = checked_getenv("WLED_ADDRESS")
 UPDATE_FREQUENCY = 0.02
 
 
