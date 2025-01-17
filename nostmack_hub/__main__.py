@@ -1,9 +1,7 @@
 import asyncio
 
-import aiohttp
-
 from nostmack_hub.effects import BrightnessEffect, EffectIntensityEffect
-from nostmack_hub.esp_listener import EspListener
+from nostmack_hub.esp_listener import listen_to_esps
 from nostmack_hub.wled import keep_wled_updated
 
 
@@ -23,15 +21,13 @@ WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 async def main():
     brightness = BrightnessEffect(5)
     effect_intensity = EffectIntensityEffect(5)
-    gear_listener = EspListener(
-        {
-            0: brightness,
-            1: effect_intensity,
-        }
-    )
+    esp_mapping = {
+        0: brightness,
+        1: effect_intensity,
+    }
 
     async with asyncio.TaskGroup() as tg:
-        tg.create_task(gear_listener.listen())
+        tg.create_task(listen_to_esps(esp_mapping))
         tg.create_task(keep_wled_updated(WLED_ADDRESS, brightness, effect_intensity))
 
 
