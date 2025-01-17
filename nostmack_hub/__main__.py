@@ -1,8 +1,9 @@
 import asyncio
-import os
-from typing import Protocol
 
 import aiohttp
+
+from nostmack_hub.effects import BrightnessEffect, EffectIntensityEffect
+from nostmack_hub.esp_listener import EspListener
 
 
 def checked_getenv(var):
@@ -41,72 +42,10 @@ GAMMA = [
 # fmt: on
 
 
-class Effect[T](Protocol):
-    def get(self) -> T:
-        raise NotImplementedError
-
-    def update(self, counts: int):
-        raise NotImplementedError
-
-
-class BrightnessEffect(Effect):
-    def __init__(self, sensitivity):
-        self.value = 0
-        self.sensitivity = sensitivity
-
-    def get(self):
-        return boomerang(self.value)
-
-    def update(self, counts):
-        self.value += counts * self.sensitivity
-        self.value %= 512
-
-
-class EffectIntensityEffect(Effect):
-    def __init__(self, sensitivity):
-        self.value = 0
-        self.sensitivity = sensitivity
-
-    def get(self):
-        return boomerang(self.value)
-
-    def update(self, counts):
-        self.value += counts * self.sensitivity
-        self.value %= 512
-
-
-class EspGearListener:
-    def __init__(self, effects: dict[int, Effect]) -> None:
-        self.effects = effects
-
-    async def listen(self):
-        async def callback(reader, _writer):
-            import struct
-
-            id = await reader.readexactly(4)
-            (id,) = struct.unpack("!i", id)
-            print(f"Connected to gear with ID {id}")
-
-            while True:
-                bytes = await reader.readexactly(2)
-                (count,) = struct.unpack("!h", bytes)
-                print(f"ID {id} count: {count}")
-                self.effects[id].update(count)
-
-        await asyncio.start_server(callback, "0.0.0.0", 1234)
-
-
-def boomerang(value: int) -> int:
-    if value < 256:
-        return value
-    else:
-        return 512 - 1 - value
-
-
 async def main():
     brightness = BrightnessEffect(5)
     effect_intensity = EffectIntensityEffect(5)
-    gear_listener = EspGearListener(
+    gear_listener = EspListener(
         {
             0: brightness,
             1: effect_intensity,
