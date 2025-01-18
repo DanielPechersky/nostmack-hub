@@ -7,6 +7,7 @@ import asyncio_dgram
 
 from nostmack_hub.dnrgb import dnrgb_packets
 from nostmack_hub.effects import Effect
+from nostmack_hub.udp import connect
 
 
 UPDATE_FREQUENCY = 0.02
@@ -15,20 +16,11 @@ UPDATE_FREQUENCY = 0.02
 async def keep_wled_updated(
     wled_address: str, led_count: int, effects: Sequence[Effect]
 ):
-    async with open_socket((wled_address, 21324)) as socket:
+    async with connect((wled_address, 21324)) as socket:
         while True:
             effect_values = [e.get() for e in effects]
             await update_wled(socket, led_count, effect_values)
             await asyncio.sleep(UPDATE_FREQUENCY)
-
-
-@asynccontextmanager
-async def open_socket(addr):
-    socket = await asyncio_dgram.connect(addr)
-    try:
-        yield socket
-    finally:
-        socket.close()
 
 
 async def update_wled(socket, led_count, effect_values: list[int]):
