@@ -16,22 +16,22 @@ def checked_getenv(var):
 
 # example: lights.local
 WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
+LED_COUNT = int(checked_getenv("LED_COUNT"))
 
 
 async def main():
-    brightness = PeakingEffect(5, 255)
-    effect_intensity = PeakingEffect(5, 255)
     esp_mapping = {
-        0: brightness,
-        1: effect_intensity,
+        0: PeakingEffect(5, 255),
+        1: PeakingEffect(5, 255),
     }
+    effects = list(esp_mapping.values())
 
     async with asyncio.TaskGroup() as tg:
-        for effect in esp_mapping.values():
+        for effect in effects:
             tg.create_task(effect.decay_task())
 
         tg.create_task(listen_to_esps(esp_mapping))
-        tg.create_task(keep_wled_updated(WLED_ADDRESS, brightness, effect_intensity))
+        tg.create_task(keep_wled_updated(WLED_ADDRESS, LED_COUNT, effects))
 
 
 if __name__ == "__main__":

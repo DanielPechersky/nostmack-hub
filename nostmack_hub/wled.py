@@ -1,7 +1,11 @@
 import asyncio
+from contextlib import asynccontextmanager
+import itertools
+from typing import Sequence
 
-from aiohttp import ClientSession
+import asyncio_dgram
 
+from nostmack_hub.dnrgb import dnrgb_packets
 from nostmack_hub.effects import Effect
 
 
@@ -9,31 +13,51 @@ UPDATE_FREQUENCY = 0.02
 
 
 async def keep_wled_updated(
-    wled_address: str, brightness: Effect, effect_intensity: Effect
+    wled_address: str, led_count: int, effects: Sequence[Effect]
 ):
-    async with ClientSession(base_url=f"http://{wled_address}/") as session:
+    async with open_socket((wled_address, 21324)) as socket:
         while True:
-            await update_wled(session, brightness.get(), effect_intensity.get())
+            effect_values = [e.get() for e in effects]
+            await update_wled(socket, led_count, effect_values)
             await asyncio.sleep(UPDATE_FREQUENCY)
 
 
-async def update_wled(session: ClientSession, brightness: int, effect_intensity: int):
-    payload = {
-        "bri": GAMMA_CORRECTION[brightness],
-        "seg": {
-            "start": 0,
-            "stop": 300,
-            "sx": effect_intensity,
-        },
-    }
-    print(f"New payload: {payload}")
+@asynccontextmanager
+async def open_socket(addr):
+    socket = await asyncio_dgram.connect(addr)
+    try:
+        yield socket
+    finally:
+        socket.close()
 
-    async with session.post(
-        f"json/state",
-        json=payload,
-    ) as response:
-        if not response.ok:
-            print(f"Failed to talk to WLED: {response}")
+
+async def update_wled(socket, led_count, effect_values: list[int]):
+    lights = create_rgb_array(led_count, effect_values)
+
+    for packet in dnrgb_packets(lights):
+        print(f"Sending packet with length {len(packet)}")
+        await socket.send(packet)
+
+
+def create_rgb_array(
+    led_count: int, effect_values: list[int]
+) -> list[tuple[int, int, int]]:
+    colours = [(255, 0, 0), (0, 0, 255)]
+
+    def scale_colour(colour, intensity):
+        return tuple(round(channel * intensity) for channel in colour)
+
+    lights = [(0, 0, 0)] * 50
+
+    values_colours = itertools.cycle(zip(effect_values, colours, strict=True))
+
+    for i in range(0, led_count):
+        value, colour = next(values_colours)
+        lights[i] = scale_colour(colour, value / 255)
+
+    lights = [tuple(GAMMA_CORRECTION[channel] for channel in light) for light in lights]
+
+    return lights
 
 
 # fmt: off
