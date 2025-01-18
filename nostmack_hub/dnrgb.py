@@ -3,11 +3,11 @@ from typing import Iterable
 import itertools
 
 
-def dnrgb_packets(rgb_values: Iterable[tuple[int, int, int]]):
+def dnrgb_packets(rgb_values: list[tuple[int, int, int]]):
     MAX_SIZE = 489
 
-    for i, packet in enumerate(itertools.batched(rgb_values, MAX_SIZE)):
-        yield dnrgb_packet(packet, start_index=i * MAX_SIZE)
+    for i in range(0, len(rgb_values), MAX_SIZE):
+        yield dnrgb_packet(rgb_values[i : i + MAX_SIZE], start_index=i)
 
 
 def dnrgb_packet(rgb_values: Iterable[tuple[int, int, int]], *, start_index) -> bytes:

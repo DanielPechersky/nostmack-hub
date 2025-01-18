@@ -2,8 +2,8 @@ import asyncio
 from typing import Protocol
 
 
-class Effect[T](Protocol):
-    def get(self) -> T:
+class Effect(Protocol):
+    def get(self) -> int:
         raise NotImplementedError
 
     def update(self, counts: int):
