@@ -1,9 +1,10 @@
 import asyncio
+from typing import Mapping
 
 from nostmack_hub.effects import Effect
 
 
-async def listen_to_esps(effects: dict[int, Effect]):
+async def listen_to_esps(effects: Mapping[int, Effect]):
     async def callback(reader, _writer):
         import struct
 
