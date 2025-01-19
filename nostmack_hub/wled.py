@@ -1,22 +1,26 @@
 import asyncio
 import itertools
-from typing import Sequence
+from typing import Protocol, Sequence
+
+from attr import dataclass
 
 from nostmack_hub.dnrgb import dnrgb_packets
-from nostmack_hub.effects import Effect
+from nostmack_hub.saturating_number import SaturatingNumber
 from nostmack_hub.udp import connect
 
 
 UPDATE_FREQUENCY = 0.02
 
 
-async def keep_wled_updated(
-    wled_address: str, led_count: int, effects: Sequence[Effect]
-):
+class GetEffects(Protocol):
+    def get_effects(self) -> list[int]:
+        raise NotImplemented
+
+
+async def keep_wled_updated(wled_address: str, led_count: int, effects: GetEffects):
     async with connect((wled_address, 21324)) as socket:
         while True:
-            effect_values = [e.get() for e in effects]
-            await update_wled(socket, led_count, effect_values)
+            await update_wled(socket, led_count, effects.get_effects())
             await asyncio.sleep(UPDATE_FREQUENCY)
 
 

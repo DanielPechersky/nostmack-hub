@@ -1,8 +1,10 @@
 import asyncio
 
-from nostmack_hub.effects import PeakingEffect
+from dataclasses import dataclass
+
+from nostmack_hub.gear import Gear
 from nostmack_hub.esp_listener import listen_to_esps
-from nostmack_hub.wled import keep_wled_updated
+from nostmack_hub.wled import GetEffects, keep_wled_updated
 
 
 def checked_getenv(var):
@@ -19,29 +21,39 @@ WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 LED_COUNT = int(checked_getenv("LED_COUNT"))
 
 
+@dataclass
+class GearEffects(GetEffects):
+    gears: list[Gear]
+
+    def get_effects(self) -> list[int]:
+        return [g.value.inner for g in self.gears]
+
+
 async def main():
     esp_mapping = {
-        0: PeakingEffect(5, 255),
-        1: PeakingEffect(5, 255),
-        2: PeakingEffect(5, 255),
+        0: Gear(5, 255),
+        1: Gear(5, 255),
+        2: Gear(5, 255),
     }
-    effects = list(esp_mapping.values())
+    gears = list(esp_mapping.values())
 
     async def update_effects(esp_values):
         async for esp_id, count in esp_values:
-            effect = esp_mapping.get(esp_id)
-            if effect is None:
+            gear = esp_mapping.get(esp_id)
+            if gear is None:
                 print(f"Received unknown ESP ID {esp_id}")
                 continue
             print(f"id: {esp_id}, count: {count}")
-            effect.update(count)
+            gear.turned(count)
 
     async with asyncio.TaskGroup() as tg:
-        for effect in effects:
-            tg.create_task(effect.decay_task())
+        for gear in gears:
+            tg.create_task(gear.discharge_task())
 
         tg.create_task(update_effects(listen_to_esps()))
-        tg.create_task(keep_wled_updated(WLED_ADDRESS, LED_COUNT, effects))
+        tg.create_task(
+            keep_wled_updated(WLED_ADDRESS, LED_COUNT, GearEffects(gears=gears))
+        )
 
 
 if __name__ == "__main__":
