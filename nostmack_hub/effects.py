@@ -11,9 +11,6 @@ class Effect(Protocol):
     def update(self, counts: int):
         raise NotImplementedError
 
-    async def fully_activated(self):
-        raise NotImplementedError
-
 
 class PeakingEffect(Effect):
     def __init__(self, sensitivity, max_value: int):
@@ -21,7 +18,6 @@ class PeakingEffect(Effect):
         self.sensitivity = sensitivity
 
         self.updated_event = asyncio.Event()
-        self.fully_activated_event = asyncio.Event()
 
     def get(self):
         return self.value.inner
@@ -38,18 +34,11 @@ class PeakingEffect(Effect):
         self.updated_event.set()
         self.updated_event = asyncio.Event()
 
-        if self.is_fully_activated():
-            self.fully_activated_event.set()
-            self.fully_activated_event = asyncio.Event()
-
     async def updated(self):
         await self.updated_event.wait()
 
     def is_fully_activated(self):
         return self.value.is_max
-
-    async def fully_activated(self):
-        await self.fully_activated_event.wait()
 
     async def decay_task(self):
         while True:
@@ -64,8 +53,5 @@ class PeakingEffect(Effect):
                         await asyncio.shield(update_task)
                 except asyncio.TimeoutError:
                     while not (self.value.is_min or update_task.done()):
-                        self._decay(self.sensitivity)
+                        self.value.sub(self.sensitivity)
                         await asyncio.sleep(0.1)
-
-    def _decay(self, amount):
-        self.value.sub(amount)

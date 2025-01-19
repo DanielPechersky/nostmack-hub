@@ -27,11 +27,20 @@ async def main():
     }
     effects = list(esp_mapping.values())
 
+    async def update_effects(esp_values):
+        async for esp_id, count in esp_values:
+            effect = esp_mapping.get(esp_id)
+            if effect is None:
+                print(f"Received unknown ESP ID {esp_id}")
+                continue
+            print(f"id: {esp_id}, count: {count}")
+            effect.update(count)
+
     async with asyncio.TaskGroup() as tg:
         for effect in effects:
             tg.create_task(effect.decay_task())
 
-        tg.create_task(listen_to_esps(esp_mapping))
+        tg.create_task(update_effects(listen_to_esps()))
         tg.create_task(keep_wled_updated(WLED_ADDRESS, LED_COUNT, effects))
 
 
