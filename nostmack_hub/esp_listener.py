@@ -21,5 +21,5 @@ async def listen_to_esps(effects: Mapping[int, Effect]):
                 effect = effects[id]
             except KeyError:
                 print(f"Unknown ID {id}")
-                return
+                continue
             effect.update(count)
