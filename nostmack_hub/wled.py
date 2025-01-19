@@ -31,7 +31,7 @@ async def update_wled(socket, led_count, effect_values: list[int]):
 def create_rgb_array(
     led_count: int, effect_values: list[int]
 ) -> list[tuple[int, int, int]]:
-    colours = [(255, 0, 0), (0, 0, 255)]
+    colours = [(255, 0, 0), (0, 0, 255), (127, 0, 127)]
 
     def scale_colour(colour, intensity):
         return tuple(round(channel * intensity) for channel in colour)

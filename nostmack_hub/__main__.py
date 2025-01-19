@@ -23,6 +23,7 @@ async def main():
     esp_mapping = {
         0: PeakingEffect(5, 255),
         1: PeakingEffect(5, 255),
+        2: PeakingEffect(5, 255),
     }
     effects = list(esp_mapping.values())
 
