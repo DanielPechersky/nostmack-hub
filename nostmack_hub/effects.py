@@ -1,6 +1,8 @@
 import asyncio
 from typing import Protocol
 
+from nostmack_hub.saturating_number import SaturatingNumber
+
 
 class Effect(Protocol):
     def get(self) -> int:
@@ -14,22 +16,21 @@ class Effect(Protocol):
 
 
 class PeakingEffect(Effect):
-    def __init__(self, sensitivity, max_value):
-        self.value = 0
+    def __init__(self, sensitivity, max_value: int):
+        self.value = SaturatingNumber(0, min=0, max=max_value)
         self.sensitivity = sensitivity
-        self.max_value = max_value
 
         self.updated_event = asyncio.Event()
         self.fully_activated_event = asyncio.Event()
 
     def get(self):
-        return self.value
+        return self.value.inner
 
     def update(self, counts):
         if counts == 0:
             return
 
-        self.value = min(self.value + abs(counts) * self.sensitivity, self.max_value)
+        self.value.add(abs(counts) * self.sensitivity)
 
         self._on_update()
 
@@ -45,7 +46,7 @@ class PeakingEffect(Effect):
         await self.updated_event.wait()
 
     def is_fully_activated(self):
-        return self.value == self.max_value
+        return self.value.is_max
 
     async def fully_activated(self):
         await self.fully_activated_event.wait()
@@ -62,9 +63,9 @@ class PeakingEffect(Effect):
                     async with asyncio.timeout(timeout):
                         await asyncio.shield(update_task)
                 except asyncio.TimeoutError:
-                    while self.value != 0 and not update_task.done():
+                    while not (self.value.is_min or update_task.done()):
                         self._decay(self.sensitivity)
                         await asyncio.sleep(0.1)
 
     def _decay(self, amount):
-        self.value = max(0, self.value - amount)
+        self.value.sub(amount)
