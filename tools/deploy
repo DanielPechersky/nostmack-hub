@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+rsync --filter=':- .gitignore' -r . nostmack-pi:/home/pi/nostmack-hub/
+rsync config.env nostmack-pi:/home/pi/nostmack-hub/
+ssh nostmack-pi '\
+cd nostmack-hub \
+&& python -m venv .venv \
+&& source .venv/bin/activate \
+&& pip install .'
+ssh nostmack-pi 'sudo systemctl enable nostmack-hub && sudo systemctl restart nostmack-hub'
