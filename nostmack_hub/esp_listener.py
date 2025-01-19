@@ -17,4 +17,9 @@ async def listen_to_esps(effects: Mapping[int, Effect]):
             ) = struct.unpack("!ih", bytes)
 
             print(f"ID {id} count: {count}")
-            effects[id].update(count)
+            try:
+                effect = effects[id]
+            except KeyError:
+                print(f"Unknown ID {id}")
+                return
+            effect.update(count)
