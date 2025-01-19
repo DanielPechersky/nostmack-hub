@@ -26,7 +26,14 @@ class GearEffects(GetEffects):
     gears: list[Gear]
 
     def get_effects(self) -> list[int]:
-        return [g.value.inner for g in self.gears]
+        def value_mapper(value):
+            if value == 0:
+                return 0
+            if value == 255:
+                return 255
+            return round(value / 254 * 150) + 50
+
+        return [value_mapper(g.value.inner) for g in self.gears]
 
 
 async def main():
