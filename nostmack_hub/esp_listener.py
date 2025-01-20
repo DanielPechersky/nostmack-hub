@@ -1,4 +1,3 @@
-from asyncio import Queue
 import struct
 
 from nostmack_hub.udp import bind

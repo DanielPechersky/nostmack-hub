@@ -13,7 +13,7 @@ def dnrgb_packets(rgb_values: list[tuple[int, int, int]]):
 def dnrgb_packet(rgb_values: Iterable[tuple[int, int, int]], *, start_index) -> bytes:
     rgb_bytes = bytes(itertools.chain.from_iterable(rgb_values))
 
-    return dnrgb_header(5, start_index) + rgb_bytes
+    return dnrgb_header(1, start_index) + rgb_bytes
 
 
 def dnrgb_header(wait_time: int, start_index: int) -> bytes:

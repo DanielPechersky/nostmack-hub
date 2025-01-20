@@ -1,11 +1,11 @@
 import asyncio
 import itertools
-from typing import Protocol, Sequence
+from typing import Protocol
 
-from attr import dataclass
+import aiohttp
+from dataclasses import dataclass
 
 from nostmack_hub.dnrgb import dnrgb_packets
-from nostmack_hub.saturating_number import SaturatingNumber
 from nostmack_hub.udp import connect
 
 
@@ -17,11 +17,32 @@ class GetEffects(Protocol):
         raise NotImplemented
 
 
-async def keep_wled_updated(wled_address: str, led_count: int, effects: GetEffects):
-    async with connect((wled_address, 21324)) as socket:
-        while True:
-            await update_wled(socket, led_count, effects.get_effects())
-            await asyncio.sleep(UPDATE_FREQUENCY)
+@dataclass
+class Wled:
+    address: str
+    led_count: int
+
+    async def set_preset(self, preset: int):
+        async with aiohttp.ClientSession(
+            base_url=f"http://{self.address}/json/state/",
+            raise_for_status=True,
+        ) as session:
+            async with session.post("", json={"ps": preset, "lor": 1}) as response:
+                pass
+
+    async def set_live(self):
+        async with aiohttp.ClientSession(
+            base_url=f"http://{self.address}/json/state/",
+            raise_for_status=True,
+        ) as session:
+            async with session.post("", json={"lor": 0}) as response:
+                pass
+
+    async def keep_updated(self, effects: GetEffects):
+        async with connect((self.address, 21324)) as socket:
+            while True:
+                await update_wled(socket, self.led_count, effects.get_effects())
+                await asyncio.sleep(UPDATE_FREQUENCY)
 
 
 async def update_wled(socket, led_count, effect_values: list[int]):

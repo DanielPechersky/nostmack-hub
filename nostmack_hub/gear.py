@@ -10,6 +10,9 @@ class Gear:
         self.touched_event = asyncio.Event()
         self.charged_event = asyncio.Event()
 
+    def reset(self):
+        self.value.inner = 0
+
     def turned(self, amount: int):
         if amount == 0:
             return
