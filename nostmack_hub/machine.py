@@ -99,7 +99,7 @@ class Machine:
         self.state.to_charged()
 
     async def initial(self):
-        await self.wled.set_preset(2)
+        await self.wled.set_preset(1)
 
     async def charging(self):
         await self.wled.set_live()
@@ -116,7 +116,7 @@ class Machine:
     async def charged(self):
         for gear in self.gears:
             gear.reset()
-        await self.wled.set_preset(1)
+        await self.wled.set_preset(2)
         await asyncio.sleep(30)
         self.state.to_initial()
 
