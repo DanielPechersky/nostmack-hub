@@ -49,7 +49,6 @@ async def update_wled(socket, led_count, effect_values: list[int]):
     lights = create_rgb_array(led_count, effect_values)
 
     for packet in dnrgb_packets(lights):
-        print(f"Sending packet with length {len(packet)}")
         await socket.send(packet)
 
 

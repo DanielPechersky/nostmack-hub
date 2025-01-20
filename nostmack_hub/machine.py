@@ -74,9 +74,7 @@ class Machine:
 
             gear = self.esp_mapping.get(esp_id)
             if gear is None:
-                print(f"Received unknown ESP ID {esp_id}")
                 continue
-            print(f"id: {esp_id}, count: {count}")
             gear.turned(count)
 
     async def check_discharged(self):
