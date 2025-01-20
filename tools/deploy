@@ -2,7 +2,7 @@
 
 set -e
 
-rsync --filter=':- .gitignore' -r . nostmack-pi:/home/pi/nostmack-hub/
+rsync --filter=':- .gitignore' --delete -r . nostmack-pi:/home/pi/nostmack-hub/ 
 rsync config.env nostmack-pi:/home/pi/nostmack-hub/
 ssh nostmack-pi '\
 cd nostmack-hub \
