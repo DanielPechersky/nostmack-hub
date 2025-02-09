@@ -1,24 +1,9 @@
 import asyncio
-from dataclasses import dataclass
 
+from nostmack_hub.led_effect import LedEffect
 from nostmack_hub.esp_listener import listen_to_esps
-from nostmack_hub.gear import Gear
-from nostmack_hub.wled import GetEffects, Wled
-
-
-@dataclass
-class GearEffects(GetEffects):
-    gears: list[Gear]
-
-    def get_effects(self) -> list[int]:
-        def value_mapper(value):
-            if value == 0:
-                return 0
-            if value == 255:
-                return 255
-            return round(value / 254 * 150) + 50
-
-        return [value_mapper(g.value.inner) for g in self.gears]
+from nostmack_hub.led_value_calculator import LedValueCalculator
+from nostmack_hub.wled import Wled
 
 
 class MachineState:
@@ -56,9 +41,10 @@ class MachineState:
 
 
 class Machine:
-    def __init__(self, *, esp_mapping, wled: Wled):
+    def __init__(self, *, esp_mapping, wled: Wled, effect: LedEffect):
         self.esp_mapping = esp_mapping
         self.wled = wled
+        self.effect = effect
         self.state = MachineState()
 
     @property
@@ -105,13 +91,17 @@ class Machine:
         await self.wled.set_live()
 
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(self.wled.keep_updated(GearEffects(gears=self.gears)))
+            tg.create_task(self.wled.keep_updated(self.led_value_calculator))
 
             tg.create_task(self.check_charged())
             tg.create_task(self.check_discharged())
 
             for gear in self.gears:
                 tg.create_task(gear.discharge_task())
+
+    @property
+    def led_value_calculator(self):
+        return LedValueCalculator(gears=self.gears, effect=self.effect)
 
     async def charged(self):
         for gear in self.gears:
