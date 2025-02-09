@@ -19,14 +19,12 @@ def checked_getenv(var):
 # example: lights.local
 WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 LED_COUNT = int(checked_getenv("LED_COUNT"))
+GEARS = checked_getenv("GEARS")
 
 
 async def main():
-    esp_mapping = {
-        0: Gear(5, 255),
-        1: Gear(5, 255),
-        2: Gear(5, 255),
-    }
+    esp_mapping = parse_gears(GEARS)
+    assert len(esp_mapping) == 3, "The current effect only supports exactly 3 gears"
     machine = Machine(
         esp_mapping=esp_mapping,
         wled=Wled(WLED_ADDRESS),
@@ -34,6 +32,14 @@ async def main():
     )
 
     await machine.run()
+
+
+def parse_gears(gears):
+    def parse_gear(gear):
+        esp_id, sensitivity = gear.split(":")
+        return int(esp_id), Gear(int(sensitivity))
+
+    return dict(map(parse_gear, gears.split(",")))
 
 
 if __name__ == "__main__":

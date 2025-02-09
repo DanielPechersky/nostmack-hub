@@ -4,8 +4,8 @@ from nostmack_hub.saturating_number import SaturatingNumber
 
 
 class Gear:
-    def __init__(self, sensitivity, max) -> None:
-        self.value = SaturatingNumber(0, min=0, max=max)
+    def __init__(self, sensitivity) -> None:
+        self.value = SaturatingNumber(0, min=0, max=255)
         self.sensitivity = sensitivity
         self.touched_event = asyncio.Event()
         self.charged_event = asyncio.Event()
