@@ -1,4 +1,5 @@
 import asyncio
+from typing import Literal
 
 from nostmack_hub.led_effect import LedEffect
 from nostmack_hub.esp_listener import listen_to_esps
@@ -8,7 +9,7 @@ from nostmack_hub.wled import Wled
 
 class MachineState:
     def __init__(self):
-        self.state = "initial"
+        self.state: Literal["initial", "charging", "charged"] = "initial"
         self.changed_event = asyncio.Event()
 
     def _on_change(self):
@@ -19,6 +20,8 @@ class MachineState:
         await self.changed_event.wait()
 
     def to_initial(self):
+        if self.is_initial():
+            return
         self.state = "initial"
         self._on_change()
 
@@ -26,6 +29,8 @@ class MachineState:
         return self.state == "initial"
 
     def to_charging(self):
+        if self.is_charging():
+            return
         self.state = "charging"
         self._on_change()
 
@@ -33,6 +38,8 @@ class MachineState:
         return self.state == "charging"
 
     def to_charged(self):
+        if self.is_charged():
+            return
         self.state = "charged"
         self._on_change()
 
@@ -113,18 +120,17 @@ class Machine:
     async def state_tasks(self):
         while True:
             async with asyncio.TaskGroup() as tg:
-                last_state = self.state.state
-                print(f"Executing state {last_state}")
-                match last_state:
+                current_state = self.state.state
+                print(f"Executing state {current_state}")
+                match current_state:
                     case "initial":
                         tasks = tg.create_task(self.initial())
                     case "charging":
                         tasks = tg.create_task(self.charging())
                     case "charged":
                         tasks = tg.create_task(self.charged())
-                while self.state.state == last_state:
-                    await self.state.wait_changed()
-                print(f"Cancelling state {last_state}")
+                await self.state.wait_changed()
+                print(f"Cancelling state {current_state}")
                 tasks.cancel()
 
     async def run(self):
