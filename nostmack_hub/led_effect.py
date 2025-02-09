@@ -4,13 +4,16 @@ from typing import Protocol
 from nostmack_hub.gamma_correction import GAMMA_CORRECTION
 
 
+Colour = tuple[int, int, int]
+
+
 class LedEffect(Protocol):
-    def calculate(self, gear_values: list[int]) -> list[tuple[int, int, int]]:
+    def calculate(self, gear_values: list[int]) -> list[Colour]:
         raise NotImplementedError
 
 
 class StripedEffect(LedEffect):
-    def __init__(self, colours: list[tuple[int, int, int]], led_count):
+    def __init__(self, colours: list[Colour], led_count):
         self.colours = colours
         self.led_count = led_count
 
@@ -33,7 +36,8 @@ class StripedEffect(LedEffect):
             lights[i] = scale_colour(colour, value / 255)
 
         lights = [
-            tuple(GAMMA_CORRECTION[channel] for channel in light) for light in lights
+            map_colour(light, lambda channel: GAMMA_CORRECTION[channel])
+            for light in lights
         ]
 
         return lights
@@ -47,3 +51,7 @@ class StripedEffect(LedEffect):
             return round(value / 254 * 150) + 50
 
         return list(map(value_mapper, gear_values))
+
+
+def map_colour(colour: Colour, f) -> Colour:
+    return (f(colour[0]), f(colour[1]), f(colour[2]))
