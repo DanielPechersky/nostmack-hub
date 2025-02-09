@@ -5,6 +5,20 @@ import pytest
 from nostmack_hub.gear import Gear
 
 
+async def test_gear_touched():
+    gear = Gear(1)
+
+    was_touched = gear.touched_event()
+
+    gear.turned(0)
+
+    assert not was_touched.is_set()
+
+    gear.turned(5)
+
+    assert was_touched.is_set()
+
+
 @pytest.mark.looptime
 async def test_gear_partially_turned_fully_discharges():
     gear = Gear(1)

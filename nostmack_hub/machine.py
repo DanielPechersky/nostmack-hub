@@ -3,6 +3,7 @@ from typing import Literal
 
 from nostmack_hub.led_effect import LedEffect
 from nostmack_hub.esp_listener import listen_to_esps
+from nostmack_hub.gear import Gear
 from nostmack_hub.led_value_calculator import LedValueCalculator
 from nostmack_hub.wled import Wled
 
@@ -48,7 +49,7 @@ class MachineState:
 
 
 class Machine:
-    def __init__(self, *, esp_mapping, wled: Wled, effect: LedEffect):
+    def __init__(self, *, esp_mapping: dict[int, Gear], wled: Wled, effect: LedEffect):
         self.esp_mapping = esp_mapping
         self.wled = wled
         self.effect = effect
@@ -76,15 +77,12 @@ class Machine:
                 await asyncio.sleep(1)
                 continue
 
-            async with asyncio.TaskGroup() as tg:
-                touches = [tg.create_task(g.wait_touched()) for g in self.gears]
-                await asyncio.sleep(5)
-                any_gears_touched = any(touch.done() for touch in touches)
-                for touch in touches:
-                    touch.cancel()
-                if not any_gears_touched:
-                    self.state.to_initial()
-                    return
+            touches = [g.touched_event() for g in self.gears]
+            await asyncio.sleep(5)
+            any_gears_touched = any(touch.is_set() for touch in touches)
+            if not any_gears_touched:
+                self.state.to_initial()
+                return
 
     async def check_charged(self):
         while not all(g.is_charged() for g in self.gears):

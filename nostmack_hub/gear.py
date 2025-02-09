@@ -7,8 +7,8 @@ class Gear:
     def __init__(self, sensitivity) -> None:
         self.value = SaturatingNumber(0, min=0, max=255)
         self.sensitivity = sensitivity
-        self.touched_event = asyncio.Event()
-        self.charged_event = asyncio.Event()
+        self._touched_event = asyncio.Event()
+        self._charged_event = asyncio.Event()
 
     def reset(self):
         self.value.inner = 0
@@ -30,38 +30,36 @@ class Gear:
         return self.value.is_max
 
     def _touched(self):
-        self.touched_event.set()
-        self.touched_event = asyncio.Event()
+        self._touched_event.set()
+        self._touched_event = asyncio.Event()
 
-    async def wait_touched(self):
-        await self.touched_event.wait()
+    def touched_event(self):
+        return self._touched_event
 
     def _charged(self):
-        self.charged_event.set()
-        self.charged_event = asyncio.Event()
+        self._charged_event.set()
+        self._charged_event = asyncio.Event()
 
-    async def wait_charged(self):
-        await self.charged_event.wait()
+    def charged_event(self):
+        return self._charged_event
 
     async def _wait_start_discharging(self):
         while True:
             if self.is_discharged():
-                await self.wait_touched()
+                await self.touched_event().wait()
 
             timeout = 30 if self.is_charged() else 1
             try:
                 async with asyncio.timeout(timeout):
-                    await self.wait_touched()
+                    await self.touched_event().wait()
             except asyncio.TimeoutError:
                 return
 
     async def _discharge(self):
-        async with asyncio.TaskGroup() as tg:
-            touched_task = tg.create_task(self.wait_touched())
-            while not (self.is_discharged() or touched_task.done()):
-                self.value.sub(self.sensitivity)
-                await asyncio.sleep(0.1)
-            touched_task.cancel()
+        was_touched = self.touched_event()
+        while not (self.is_discharged() or was_touched.is_set()):
+            self.value.sub(self.sensitivity)
+            await asyncio.sleep(0.1)
 
     async def discharge_task(self):
         while True:
