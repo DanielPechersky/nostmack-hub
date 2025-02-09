@@ -11,14 +11,14 @@ from nostmack_hub.wled import Wled
 class MachineState:
     def __init__(self):
         self.state: Literal["initial", "charging", "charged"] = "initial"
-        self.changed_event = asyncio.Event()
+        self._changed_event = asyncio.Event()
 
     def _on_change(self):
-        self.changed_event.set()
-        self.changed_event = asyncio.Event()
+        self._changed_event.set()
+        self._changed_event = asyncio.Event()
 
-    async def wait_changed(self):
-        await self.changed_event.wait()
+    def changed_event(self):
+        return self._changed_event
 
     def to_initial(self):
         if self.is_initial():
@@ -127,7 +127,7 @@ class Machine:
                         tasks = tg.create_task(self.charging())
                     case "charged":
                         tasks = tg.create_task(self.charged())
-                await self.state.wait_changed()
+                await self.state.changed_event().wait()
                 print(f"Cancelling state {current_state}")
                 tasks.cancel()
 
