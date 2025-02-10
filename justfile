@@ -7,12 +7,13 @@ ssh:
 disable_hotspot: (systemctl "disable")
     ssh nostmack-pi 'sudo reboot'
 
-deploy_code: && (systemctl "restart")
+build_docker:
+    docker build -t nostmack_hub .
+
+deploy_docker: && (systemctl "restart")
     #!/usr/bin/env bash
 
     set -e
-
-    docker build -t nostmack_hub .
 
     docker save -o nostmack_hub.tar nostmack_hub
 
