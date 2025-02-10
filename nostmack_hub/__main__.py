@@ -1,6 +1,7 @@
 import asyncio
 
 
+from nostmack_hub.cancel_on_signal import cancel_on_signal
 from nostmack_hub.led_effect import StripedEffect
 from nostmack_hub.gear import Gear
 from nostmack_hub.machine import Machine
@@ -43,4 +44,4 @@ def parse_gears(gears):
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(cancel_on_signal(main()))
