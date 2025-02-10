@@ -17,7 +17,7 @@ if b"activated" not in hotspot_state.stdout:
     )
 
 subprocess.run(
-    'nmcli connection modify "Wired connection 1" ipv4.addresses 10.10.10.0/32 ipv4.method manual ipv4.routes 10.10.10.0/24 && nmcli device reapply eth0',
+    'nmcli connection modify "Wired connection 1" ipv4.addresses 10.10.10.0/24 ipv4.method shared ipv4.routes 10.10.10.0/24 && nmcli device reapply eth0',
     shell=True,
     check=True,
 )
@@ -32,5 +32,9 @@ os.execlp(
     "--mount",
     "type=bind,src=/home/pi/nostmack-hub/sounds,dst=/app/sounds,ro",
     "--network=host",
+    "-v",
+    "/var/run/dbus:/var/run/dbus",
+    "-v",
+    "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket",
     "nostmack_hub",
 )
