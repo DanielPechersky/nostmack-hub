@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-rsync --delete --exclude=.DS_Store -r sounds nostmack-pi:/home/pi/nostmack-hub/
