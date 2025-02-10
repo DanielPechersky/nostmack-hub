@@ -23,7 +23,7 @@ deploy_code: && (systemctl "restart")
 
     ssh nostmack-pi rm -rf "${install_dir}"
 
-deploy_env:
+deploy_env: && (systemctl "restart")
     rsync config.env nostmack-pi:/home/pi/nostmack-hub/
 
 deploy_service: && daemon_reload (systemctl "restart")
@@ -31,7 +31,7 @@ deploy_service: && daemon_reload (systemctl "restart")
     rsync nostmack-hub.service nostmack-pi:/home/pi/
     ssh nostmack-pi 'sudo mv /home/pi/nostmack-hub.service /etc/systemd/system/nostmack-hub.service'
 
-deploy_sounds:
+deploy_sounds: && (systemctl "restart")
     rsync --delete --exclude=.DS_Store -r sounds nostmack-pi:/home/pi/nostmack-hub/
 
 daemon_reload:
