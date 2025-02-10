@@ -4,6 +4,7 @@ Description=Maintain a wifi hotspot and control WLED
 [Service]
 User=root
 EnvironmentFile=/home/pi/nostmack-hub/config.env
+WorkingDirectory=/home/pi/nostmack-hub
 ExecStart=python -u /home/pi/nostmack-hub/start_service.py
 Restart=on-failure
 RestartSec=2s

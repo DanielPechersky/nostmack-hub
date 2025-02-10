@@ -5,14 +5,23 @@ from nostmack_hub.esp_listener import listen_to_esps
 from nostmack_hub.gear import Gear
 from nostmack_hub.led_value_calculator import LedValueCalculator
 from nostmack_hub.machine_state import MachineState
+from nostmack_hub.sounds import Sounds
 from nostmack_hub.wled import Wled
 
 
 class Machine:
-    def __init__(self, *, esp_mapping: dict[int, Gear], wled: Wled, effect: LedEffect):
+    def __init__(
+        self,
+        *,
+        esp_mapping: dict[int, Gear],
+        wled: Wled,
+        effect: LedEffect,
+        sounds: Sounds,
+    ):
         self.esp_mapping = esp_mapping
         self.wled = wled
         self.effect = effect
+        self.sounds = sounds
         self.state = MachineState()
 
     @property
@@ -57,6 +66,7 @@ class Machine:
 
         async with asyncio.TaskGroup() as tg:
             tg.create_task(self.wled.keep_updated(self.led_value_calculator))
+            tg.create_task(self.sounds.play_sounds())
 
             tg.create_task(self.check_charged())
             tg.create_task(self.check_discharged())
