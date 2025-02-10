@@ -17,4 +17,4 @@ if b"activated" not in hotspot_state.stdout:
     )
 
 python = "/home/pi/nostmack-hub/.venv/bin/python"
-os.execlp(python, python, "-m", "nostmack_hub")
+os.execlp(python, python, "-u", "-m", "nostmack_hub")
