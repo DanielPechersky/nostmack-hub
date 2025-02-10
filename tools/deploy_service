@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-rsync nostmack-hub.service nostmack-pi:/home/pi/
-ssh nostmack-pi 'sudo mv /home/pi/nostmack-hub.service /etc/systemd/system/nostmack-hub.service'
-ssh nostmack-pi 'sudo systemctl daemon-reload && sudo systemctl restart nostmack-hub'

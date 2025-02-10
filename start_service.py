@@ -16,5 +16,15 @@ if b"activated" not in hotspot_state.stdout:
         check=True,
     )
 
-python = "/home/pi/nostmack-hub/.venv/bin/python"
-os.execlp(python, python, "-u", "-m", "nostmack_hub")
+os.execlp(
+    "docker",
+    "docker",
+    "run",
+    "--privileged",
+    "--env-file",
+    "/home/pi/nostmack-hub/config.env",
+    "--mount",
+    "type=bind,src=/home/pi/nostmack-hub/sounds,dst=/app/sounds,ro",
+    "--network=host",
+    "nostmack_hub",
+)

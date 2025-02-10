@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-ssh nostmack-pi 'sudo systemctl disable nostmack-hub && sudo reboot'

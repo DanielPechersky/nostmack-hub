@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-set -e
-
-ssh nostmack-pi 'journalctl -f -u nostmack-hub'
