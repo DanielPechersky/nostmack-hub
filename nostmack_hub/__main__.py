@@ -23,12 +23,12 @@ GEARS = checked_getenv("GEARS")
 
 
 async def main():
+    COLOURS = [(255, 0, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
     esp_mapping = parse_gears(GEARS)
-    assert len(esp_mapping) == 3, "The current effect only supports exactly 3 gears"
     machine = Machine(
         esp_mapping=esp_mapping,
         wled=Wled(WLED_ADDRESS),
-        effect=StripedEffect([(255, 0, 0), (0, 0, 255), (127, 0, 127)], LED_COUNT),
+        effect=StripedEffect(COLOURS[: len(esp_mapping)], LED_COUNT),
     )
 
     await machine.run()
