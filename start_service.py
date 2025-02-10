@@ -16,6 +16,12 @@ if b"activated" not in hotspot_state.stdout:
         check=True,
     )
 
+subprocess.run(
+    'nmcli connection modify "Wired connection 1" ipv4.addresses 10.10.10.0/32 ipv4.method manual ipv4.routes 10.10.10.0/24 && nmcli device reapply eth0',
+    shell=True,
+    check=True,
+)
+
 os.execlp(
     "docker",
     "docker",
