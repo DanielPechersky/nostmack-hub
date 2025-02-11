@@ -10,6 +10,9 @@ disable_hotspot: (systemctl "disable")
 build_docker:
     docker build -t nostmack_hub .
 
+deploy_code: && (systemctl "restart")
+    rsync --filter=':- .gitignore' --delete -r nostmack_hub "nostmack-pi:/home/pi/nostmack-hub/"
+
 deploy_docker: && (systemctl "restart")
     #!/usr/bin/env bash
 

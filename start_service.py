@@ -31,6 +31,8 @@ os.execlp(
     "/home/pi/nostmack-hub/config.env",
     "--mount",
     "type=bind,src=/home/pi/nostmack-hub/sounds,dst=/app/sounds,ro",
+    "--mount",
+    "type=bind,src=/home/pi/nostmack-hub/nostmack_hub,dst=/app/nostmack_hub,ro",
     "--network=host",
     "-v",
     "/var/run/dbus:/var/run/dbus",
