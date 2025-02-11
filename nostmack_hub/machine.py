@@ -1,4 +1,5 @@
 import asyncio
+from typing import AsyncGenerator
 
 from pygame.mixer import Sound
 
@@ -11,17 +12,23 @@ from nostmack_hub.sounds import Sounds
 from nostmack_hub.wled import Wled
 
 
+EspEvents = AsyncGenerator[tuple[int, int]]
+
+
 class Machine:
+
     def __init__(
         self,
         *,
         esp_mapping: dict[int, Gear],
+        esp_events: EspEvents,
         wled: Wled,
         effect: LedEffect,
         sounds: Sounds,
         finale: Sound,
     ):
         self.esp_mapping = esp_mapping
+        self.esp_events = esp_events
         self.wled = wled
         self.effect = effect
         self.sounds = sounds
@@ -32,8 +39,8 @@ class Machine:
     def gears(self):
         return list(self.esp_mapping.values())
 
-    async def update_effects(self, esp_values):
-        async for esp_id, count in esp_values:
+    async def update_effects(self):
+        async for esp_id, count in self.esp_events:
             if self.state.is_charged():
                 continue
             if self.state.is_initial() and count != 0:
@@ -108,5 +115,5 @@ class Machine:
 
     async def run(self):
         async with asyncio.TaskGroup() as tg:
-            tg.create_task(self.update_effects(listen_to_esps()))
+            tg.create_task(self.update_effects())
             tg.create_task(self.state_tasks())
