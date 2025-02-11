@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import pygame.mixer
+from pygame.mixer import Sound
 
 from nostmack_hub.cancel_on_signal import cancel_on_signal
 from nostmack_hub.led_effect import StripedEffect
@@ -26,15 +27,19 @@ WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 LED_COUNT = int(checked_getenv("LED_COUNT"))
 GEARS = checked_getenv("GEARS")
 
+SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
+SOUND_DING = Path(checked_getenv("SOUND_DING"))
+
 
 async def main():
     with init_pygame_mixer():
         COLOURS = [(255, 0, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
         esp_mapping = parse_gears(GEARS)
-        sounds = list(map(pygame.mixer.Sound, Path("sounds").iterdir()))
+        sounds = list(map(Sound, SOUND_POOL.iterdir()))
         sounds = Sounds(
             gears=list(esp_mapping.values()),
             sounds=sounds,
+            ding=Sound(SOUND_DING),
         )
         machine = Machine(
             esp_mapping=esp_mapping,
