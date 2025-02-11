@@ -6,7 +6,7 @@ import pygame.mixer
 from pygame.mixer import Sound
 
 from nostmack_hub.cancel_on_signal import cancel_on_signal
-from nostmack_hub.led_effect import StripedEffect
+from nostmack_hub.led_effect import SectoredEffect
 from nostmack_hub.gear import Gear
 from nostmack_hub.machine import Machine
 from nostmack_hub.sounds import Sounds
@@ -45,7 +45,7 @@ async def main():
         machine = Machine(
             esp_mapping=esp_mapping,
             wled=Wled(WLED_ADDRESS),
-            effect=StripedEffect(COLOURS[: len(esp_mapping)], LED_COUNT),
+            effect=SectoredEffect(COLOURS[: len(esp_mapping)], LED_COUNT),
             sounds=sounds,
             finale=Sound(SOUND_FINALE),
         )
