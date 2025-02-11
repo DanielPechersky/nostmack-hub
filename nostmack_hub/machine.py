@@ -1,5 +1,7 @@
 import asyncio
 
+from pygame.mixer import Sound
+
 from nostmack_hub.led_effect import LedEffect
 from nostmack_hub.esp_listener import listen_to_esps
 from nostmack_hub.gear import Gear
@@ -17,11 +19,13 @@ class Machine:
         wled: Wled,
         effect: LedEffect,
         sounds: Sounds,
+        finale: Sound,
     ):
         self.esp_mapping = esp_mapping
         self.wled = wled
         self.effect = effect
         self.sounds = sounds
+        self.finale = finale
         self.state = MachineState()
 
     @property
@@ -82,6 +86,7 @@ class Machine:
         for gear in self.gears:
             gear.reset()
         await self.wled.set_preset(2)
+        self.finale.play()
         await asyncio.sleep(30)
         self.state.to_initial()
 

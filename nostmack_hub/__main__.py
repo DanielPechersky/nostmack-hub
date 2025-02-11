@@ -29,6 +29,7 @@ GEARS = checked_getenv("GEARS")
 
 SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
 SOUND_DING = Path(checked_getenv("SOUND_DING"))
+SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 
 async def main():
@@ -46,6 +47,7 @@ async def main():
             wled=Wled(WLED_ADDRESS),
             effect=StripedEffect(COLOURS[: len(esp_mapping)], LED_COUNT),
             sounds=sounds,
+            finale=Sound(SOUND_FINALE),
         )
 
         await machine.run()
