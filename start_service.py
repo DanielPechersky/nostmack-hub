@@ -38,5 +38,9 @@ os.execlp(
     "/var/run/dbus:/var/run/dbus",
     "-v",
     "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket",
+    "--mount",
+    "type=bind,src=/run/systemd,dst=/run/systemd",
+    "--mount",
+    "type=bind,src=/etc/systemd,dst=/etc/systemd",
     "nostmack_hub",
 )

@@ -4,7 +4,6 @@ from typing import AsyncGenerator
 from pygame.mixer import Sound
 
 from nostmack_hub.led_effect import LedEffect
-from nostmack_hub.esp_listener import listen_to_esps
 from nostmack_hub.gear import Gear
 from nostmack_hub.led_value_calculator import LedValueCalculator
 from nostmack_hub.machine_state import MachineState
@@ -12,7 +11,7 @@ from nostmack_hub.sounds import Sounds
 from nostmack_hub.wled import Wled
 
 
-EspEvents = AsyncGenerator[tuple[int, int]]
+EspEvents = AsyncGenerator[tuple[int, int], None]
 
 
 class Machine:
