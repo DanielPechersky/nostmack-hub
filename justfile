@@ -46,3 +46,6 @@ systemctl command:
 
 test:
    poetry run pytest
+
+preview:
+    poetry run python preview.py
