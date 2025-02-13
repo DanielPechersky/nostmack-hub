@@ -7,7 +7,7 @@ from imgui.integrations.pygame import PygameRenderer
 import pygame
 import OpenGL.GL as gl
 
-from nostmack_hub.led_effect import SectoredEffect, StripedEffect
+from nostmack_hub.led_effect import SectoredEffect, StripedEffect, SteampunkChargingEffect
 from preview.init_machine import init_machine
 from preview.draw_leds import draw_coloured_line
 from preview.wled_mock import WledPreset, WledRealtime
@@ -52,6 +52,7 @@ async def main():
         effects = [
             StripedEffect(COLOURS, LED_COUNT),
             SectoredEffect(COLOURS, LED_COUNT),
+            SteampunkChargingEffect(COLOURS, LED_COUNT),
         ]
         selected_effect = 0
 
@@ -103,7 +104,8 @@ async def main():
                                 # Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                                 if is_selected:
                                     imgui.set_item_default_focus()
-                    imgui.text("note: machine must not be charging to change effects")
+                    imgui.text(
+                        "note: machine must not be charging to change effects")
 
                     if imgui.button("Reset machine"):
                         machine.state.to_initial()
@@ -133,8 +135,10 @@ async def main():
 
                             right_leds = leds[:side_length]
                             bottom_leds = leds[side_length:][:top_length]
-                            left_leds = leds[side_length + top_length :][:side_length]
-                            top_leds = leds[side_length + top_length + side_length :]
+                            left_leds = leds[side_length +
+                                             top_length:][:side_length]
+                            top_leds = leds[side_length +
+                                            top_length + side_length:]
 
                             tl_x, tl_y = 30, 30
                             br_x, br_y = 500, 500
