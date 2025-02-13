@@ -2,6 +2,8 @@ import itertools
 import math
 from typing import Protocol
 
+from dataclasses import dataclass
+
 from nostmack_hub.gamma_correction import GAMMA_CORRECTION
 
 
@@ -33,11 +35,6 @@ class StripedEffect(LedEffect):
             value, colour = next(values_colours)
             lights[i] = scale_colour(colour, value / 255)
 
-        lights = [
-            map_colour(light, lambda channel: GAMMA_CORRECTION[channel])
-            for light in lights
-        ]
-
         return lights
 
 
@@ -65,6 +62,16 @@ class SectoredEffect(LedEffect):
             end = (sector + 1) * sector_length
             for i in range(start, end):
                 lights[i] = scale_colour(colour, value / 255)
+
+        return lights
+
+
+@dataclass
+class GammaCorrection(LedEffect):
+    inner: LedEffect
+
+    def calculate(self, gear_values: list[int]):
+        lights = self.inner.calculate(gear_values)
 
         lights = [
             map_colour(light, lambda channel: GAMMA_CORRECTION[channel])
