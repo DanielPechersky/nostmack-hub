@@ -150,13 +150,14 @@ def draw_coloured_line(draw_list, colours, p0, p1):
 
 def draw_coloured_path(draw_list, colours, points):
     for colour, ((x0, y0), (x1, y1)) in zip(colours, points, strict=True):
-        draw_list.add_line(
-            x0,
-            y0,
-            x1,
-            y1,
+        x = (x0 + x1) / 2
+        y = (y0 + y1) / 2
+        r = ((x - x0) ** 2 + (y - y0) ** 2) ** 0.5
+        draw_list.add_circle_filled(
+            x,
+            y,
+            r,
             imgui_colour(colour),
-            thickness=3,
         )
 
 
