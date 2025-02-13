@@ -48,4 +48,4 @@ test:
    poetry run pytest
 
 preview:
-    poetry run python preview.py
+    poetry run python -m preview
