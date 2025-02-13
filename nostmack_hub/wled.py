@@ -16,8 +16,20 @@ class LedValues(Protocol):
         raise NotImplementedError
 
 
+class WledProtocol(Protocol):
+
+    async def set_preset(self, preset: int):
+        raise NotImplementedError
+
+    async def set_live(self):
+        raise NotImplementedError
+
+    async def keep_updated(self, led_values: LedValues):
+        raise NotImplementedError
+
+
 @dataclass
-class Wled:
+class Wled(WledProtocol):
     address: str
 
     async def set_preset(self, preset: int):

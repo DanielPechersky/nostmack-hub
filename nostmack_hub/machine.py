@@ -8,7 +8,7 @@ from nostmack_hub.gear import Gear
 from nostmack_hub.led_value_calculator import LedValueCalculator
 from nostmack_hub.machine_state import MachineState
 from nostmack_hub.sounds import Sounds
-from nostmack_hub.wled import Wled
+from nostmack_hub.wled import WledProtocol
 
 
 EspEvents = AsyncGenerator[tuple[int, int], None]
@@ -21,7 +21,7 @@ class Machine:
         *,
         esp_mapping: dict[int, Gear],
         esp_events: EspEvents,
-        wled: Wled,
+        wled: WledProtocol,
         effect: LedEffect,
         sounds: Sounds,
         finale: Sound,
