@@ -48,7 +48,7 @@ class Gear:
             if self.is_discharged():
                 await self.touched_event().wait()
 
-            timeout = 30 if self.is_charged() else 1
+            timeout = 90 if self.is_charged() else 1
             try:
                 async with asyncio.timeout(timeout):
                     await self.touched_event().wait()
