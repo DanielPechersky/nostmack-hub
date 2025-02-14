@@ -36,19 +36,20 @@ SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
 SOUND_DING = Path(checked_getenv("SOUND_DING"))
 SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
+EFFECTS = [
+    StripedEffect(COLOURS, LED_COUNT),
+    SectoredEffect(COLOURS, LED_COUNT),
+    SteampunkChargingEffect(COLOURS, LED_COUNT),
+]
+
 
 async def main():
     with init_pygame_mixer():
 
-        effects = [
-            StripedEffect(COLOURS, LED_COUNT),
-            SectoredEffect(COLOURS, LED_COUNT),
-            SteampunkChargingEffect(COLOURS, LED_COUNT),
-        ]
         selected_effect = 0
 
         machine, esp_events, wled = init_machine(
-            effects[selected_effect], SOUND_POOL, SOUND_DING, SOUND_FINALE
+            EFFECTS[selected_effect], SOUND_POOL, SOUND_DING, SOUND_FINALE
         )
 
         gear_turns = {esp_id: 0.0 for esp_id, _ in machine.esp_mapping.items()}
@@ -76,7 +77,7 @@ async def main():
                 _, value = imgui.list_box(
                     "Effect",
                     selected_effect,
-                    [effect.__class__.__name__ for effect in effects],
+                    [effect.__class__.__name__ for effect in EFFECTS],
                 )
                 selected_effect = value
                 imgui.text("note: machine must not be charging to change effects")
@@ -91,7 +92,7 @@ async def main():
                 gear_turns[i] -= sensed_turns
                 esp_events.append((i, sensed_turns))
 
-            machine.effect = effects[selected_effect]
+            machine.effect = EFFECTS[selected_effect]
 
             with imgui_ctx.begin("Pattern"):
                 imgui.set_window_pos((0, 0), imgui.Cond_.first_use_ever.value)
