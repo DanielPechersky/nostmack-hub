@@ -1,4 +1,4 @@
-import imgui
+from imgui_bundle import imgui
 
 
 def draw_coloured_line(draw_list, colours, p0, p1):
@@ -33,12 +33,11 @@ def draw_coloured_path(draw_list, colours, points):
         y = (y0 + y1) / 2
         r = ((x - x0) ** 2 + (y - y0) ** 2) ** 0.5
         draw_list.add_circle_filled(
-            x,
-            y,
+            (x, y),
             r,
             imgui_colour(colour),
         )
 
 
 def imgui_colour(colour):
-    return imgui.get_color_u32_rgba(*(channel / 255 for channel in colour), 1)
+    return imgui.IM_COL32(*colour, 255)

@@ -1,13 +1,16 @@
 import asyncio
 from contextlib import contextmanager
 from pathlib import Path
-import dotenv
-import imgui
-from imgui.integrations.pygame import PygameRenderer
-import pygame
-import OpenGL.GL as gl
 
-from nostmack_hub.led_effect import SectoredEffect, StripedEffect, SteampunkChargingEffect
+from imgui_bundle import imgui, imgui_ctx, hello_imgui
+import dotenv
+import pygame
+
+from nostmack_hub.led_effect import (
+    SectoredEffect,
+    StripedEffect,
+    SteampunkChargingEffect,
+)
 from preview.init_machine import init_machine
 from preview.draw_leds import draw_coloured_line
 from preview.wled_mock import WledPreset, WledRealtime
@@ -35,19 +38,7 @@ SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 
 async def main():
-    with init_pygame():
-
-        size = 1000, 600
-
-        pygame.display.set_mode(
-            size, pygame.DOUBLEBUF | pygame.OPENGL | pygame.RESIZABLE
-        )
-
-        imgui.create_context()
-        impl = PygameRenderer()
-
-        imgui.get_io().display_size = size
-        imgui.get_io().ini_file_name = ""
+    with init_pygame_mixer():
 
         effects = [
             StripedEffect(COLOURS, LED_COUNT),
@@ -64,130 +55,120 @@ async def main():
 
         clock = pygame.time.Clock()
 
+        def gui():
+            nonlocal selected_effect
+
+            dt = clock.tick() / 1000
+
+            with imgui_ctx.begin("Settings"):
+                imgui.set_window_pos((550, 0), imgui.Cond_.first_use_ever.value)
+
+                for i, gear in machine.esp_mapping.items():
+                    imgui.text(f"Gear {i}: {gear.value.inner}")
+                    imgui.button(f"Slow turn {i}")
+                    if imgui.is_item_hovered():
+                        gear_turns[i] += dt * 10
+                    imgui.same_line()
+                    imgui.button(f"Fast turn {i}")
+                    if imgui.is_item_hovered():
+                        gear_turns[i] += dt * 50
+
+                _, value = imgui.list_box(
+                    "Effect",
+                    selected_effect,
+                    [effect.__class__.__name__ for effect in effects],
+                )
+                selected_effect = value
+                imgui.text("note: machine must not be charging to change effects")
+
+                if imgui.button("Reset machine"):
+                    machine.state.to_initial()
+                    for gear in machine.gears:
+                        gear.reset()
+
+            for i, turn in gear_turns.items():
+                sensed_turns = round(turn)
+                gear_turns[i] -= sensed_turns
+                esp_events.append((i, sensed_turns))
+
+            machine.effect = effects[selected_effect]
+
+            with imgui_ctx.begin("Pattern"):
+                imgui.set_window_pos((0, 0), imgui.Cond_.first_use_ever.value)
+                imgui.set_window_size((550, 550), imgui.Cond_.first_use_ever.value)
+
+                match wled.state:
+                    case WledPreset(id):
+                        imgui.text(f"Preset id: {id}")
+                    case WledRealtime(leds):
+                        draw_list = imgui.get_window_draw_list()
+                        wx, wy = imgui.get_window_pos()
+
+                        side_length = round(len(leds) * 3 / 10)
+                        top_length = round(len(leds) * 2 / 10)
+
+                        right_leds = leds[:side_length]
+                        bottom_leds = leds[side_length:][:top_length]
+                        left_leds = leds[side_length + top_length :][:side_length]
+                        top_leds = leds[side_length + top_length + side_length :]
+
+                        tl_x, tl_y = 30, 30
+                        br_x, br_y = 500, 500
+
+                        draw_coloured_line(
+                            draw_list,
+                            right_leds,
+                            (wx + br_x, wy + tl_y),
+                            (wx + br_x, wy + br_y),
+                        )
+
+                        draw_coloured_line(
+                            draw_list,
+                            bottom_leds,
+                            (wx + br_x, wy + br_y),
+                            (wx + tl_x, wy + br_y),
+                        )
+
+                        draw_coloured_line(
+                            draw_list,
+                            left_leds,
+                            (wx + tl_x, wy + br_y),
+                            (wx + tl_x, wy + tl_y),
+                        )
+
+                        draw_coloured_line(
+                            draw_list,
+                            top_leds,
+                            (wx + tl_x, wy + tl_y),
+                            (wx + br_x, wy + tl_y),
+                        )
+
         async with asyncio.TaskGroup() as tg:
             machine_task = tg.create_task(machine.run())
+            await run_hello_imgui(gui)
+            machine_task.cancel()
 
-            while True:
-                dt = clock.tick() / 1000
 
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        machine_task.cancel()
-                        return
-                    impl.process_event(event)
-                impl.process_inputs()
-
-                imgui.new_frame()
-
-                with imgui.begin("Settings"):
-                    imgui.set_window_position(550, 0, imgui.FIRST_USE_EVER)
-
-                    for i, gear in machine.esp_mapping.items():
-                        imgui.text(f"Gear {i}: {gear.value.inner}")
-                        imgui.button("Slow turn")
-                        if imgui.is_item_hovered():
-                            gear_turns[i] += dt * 10
-                        imgui.same_line()
-                        imgui.button("Fast turn")
-                        if imgui.is_item_hovered():
-                            gear_turns[i] += dt * 50
-
-                    with imgui.begin_list_box("Effect", 150, 50) as combo:
-                        if combo.opened:
-                            for i, effect in enumerate(effects):
-                                is_selected = i == selected_effect
-                                if imgui.selectable(
-                                    effect.__class__.__name__, is_selected
-                                )[0]:
-                                    selected_effect = i
-
-                                # Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                if is_selected:
-                                    imgui.set_item_default_focus()
-                    imgui.text(
-                        "note: machine must not be charging to change effects")
-
-                    if imgui.button("Reset machine"):
-                        machine.state.to_initial()
-                        for gear in machine.gears:
-                            gear.reset()
-
-                for i, turn in gear_turns.items():
-                    sensed_turns = round(turn)
-                    gear_turns[i] -= sensed_turns
-                    esp_events.append((i, sensed_turns))
-
-                machine.effect = effects[selected_effect]
-
-                with imgui.begin("Pattern"):
-                    imgui.set_window_position(0, 0, imgui.FIRST_USE_EVER)
-                    imgui.set_window_size(550, 550, imgui.FIRST_USE_EVER)
-
-                    match wled.state:
-                        case WledPreset(id):
-                            imgui.text(f"Preset id: {id}")
-                        case WledRealtime(leds):
-                            draw_list = imgui.get_window_draw_list()
-                            wx, wy = imgui.get_window_position()
-
-                            side_length = round(len(leds) * 3 / 10)
-                            top_length = round(len(leds) * 2 / 10)
-
-                            right_leds = leds[:side_length]
-                            bottom_leds = leds[side_length:][:top_length]
-                            left_leds = leds[side_length +
-                                             top_length:][:side_length]
-                            top_leds = leds[side_length +
-                                            top_length + side_length:]
-
-                            tl_x, tl_y = 30, 30
-                            br_x, br_y = 500, 500
-
-                            draw_coloured_line(
-                                draw_list,
-                                right_leds,
-                                (wx + br_x, wy + tl_y),
-                                (wx + br_x, wy + br_y),
-                            )
-
-                            draw_coloured_line(
-                                draw_list,
-                                bottom_leds,
-                                (wx + br_x, wy + br_y),
-                                (wx + tl_x, wy + br_y),
-                            )
-
-                            draw_coloured_line(
-                                draw_list,
-                                left_leds,
-                                (wx + tl_x, wy + br_y),
-                                (wx + tl_x, wy + tl_y),
-                            )
-
-                            draw_coloured_line(
-                                draw_list,
-                                top_leds,
-                                (wx + tl_x, wy + tl_y),
-                                (wx + br_x, wy + tl_y),
-                            )
-
-                gl.glClearColor(1, 1, 1, 1)
-                gl.glClear(gl.GL_COLOR_BUFFER_BIT)
-                imgui.render()
-                impl.render(imgui.get_draw_data())
-
-                pygame.display.flip()
-
-                await asyncio.sleep(1 / 120)
+async def run_hello_imgui(gui):
+    runner_params = hello_imgui.RunnerParams()
+    runner_params.fps_idling.fps_idling_mode = hello_imgui.FpsIdlingMode.early_return
+    runner_params.callbacks.show_gui = gui
+    runner_params.app_window_params.window_geometry.size = (1000, 600)
+    hello_imgui.manual_render.setup_from_runner_params(runner_params)
+    imgui.create_context()
+    while not hello_imgui.get_runner_params().app_shall_exit:
+        hello_imgui.manual_render.render()
+        await asyncio.sleep(1 / 120)
+    hello_imgui.manual_render.tear_down()
 
 
 @contextmanager
-def init_pygame():
-    pygame.init()
+def init_pygame_mixer():
+    pygame.mixer.init()
     try:
         yield
     finally:
-        pygame.quit()
+        pygame.mixer.quit()
 
 
 if __name__ == "__main__":

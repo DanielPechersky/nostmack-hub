@@ -178,3 +178,4 @@ pyrightconfig.json
 config.env
 *.tar
 sounds
+imgui.ini
