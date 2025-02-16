@@ -359,6 +359,22 @@ class SectoredEffect(LedEffect):
         return lights
 
 
+class ShimmerEffect(LedEffect):
+    def __init__(self, colour: Colour):
+        self.colour = colour
+
+    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+        return [scale_colour(self.colour, random.random()) for _ in range(led_count)]
+
+
+def shimmer(effect, intensity: float):
+    intensity = int(intensity * 255)
+    return LayeredEffect(
+        [effect, ShimmerEffect((intensity, intensity, intensity))],
+        blending_fn=subtract_colours,
+    )
+
+
 @dataclass
 class SeedConfig:
     influence_size: int
@@ -615,18 +631,23 @@ def add_colours(a: Colour, b: Colour) -> Colour:
     return map_colour((a[0] + b[0], a[1] + b[1], a[2] + b[2]), lambda c: min(c, 255))
 
 
+def subtract_colours(a: Colour, b: Colour) -> Colour:
+    return map_colour((a[0] - b[0], a[1] - b[1], a[2] - b[2]), lambda c: max(c, 0))
+
+
 @dataclass
 class LayeredEffect(LedEffect):
     effects: list[LedEffect]
     blending_fn: Callable[[Colour, Colour], Colour] = add_colours
 
     def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
-        lights = [(0, 0, 0)] * led_count
+        effects = iter(self.effects)
+        lights = next(effects).calculate(gear_values, led_count)
 
-        for effect in self.effects:
+        for effect in effects:
             colours = effect.calculate(gear_values, led_count)
             lights = [
-                add_colours(light, colour)
+                self.blending_fn(light, colour)
                 for light, colour in zip(lights, colours, strict=True)
             ]
 

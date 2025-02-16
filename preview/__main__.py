@@ -17,6 +17,7 @@ from nostmack_hub.led_effect import (
     StripedEffect,
     SteampunkChargingEffect,
     alternating_stripe_effect,
+    shimmer,
 )
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
@@ -52,7 +53,7 @@ EFFECTS: list[LedEffect] = [
         [
             PulseOnFullChargeEffect(COLOURS),
             alternating_stripe_effect(
-                StripedEffect(COLOURS),
+                shimmer(StripedEffect(COLOURS), 0.3),
                 5,
                 BlorpEffect(
                     COLOURS,
