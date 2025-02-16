@@ -13,7 +13,7 @@ Colour = tuple[int, int, int]
 
 
 class LedEffect(Protocol):
-    def calculate(self, gear_values: list[int]) -> list[Colour]:
+    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
         raise NotImplementedError
 
 
@@ -127,17 +127,15 @@ named_colors: dict[str, Colour] = {
 }
 
 
-class SteampunkChargingEffect:
+class SteampunkChargingEffect(LedEffect):
     def __init__(
         self,
         colours: list[Colour],
-        led_count: int,
         turn: float = 1.0,
         max_spread: float = 1.0,
         min_brightness: int = 40,
     ):
         self.colours = colours
-        self.led_count = led_count
         self.turn = turn
         self.max_spread = max_spread
         self.min_brightness = min_brightness
@@ -170,15 +168,15 @@ class SteampunkChargingEffect:
         # Cache that ensures stable overlap color across frames:
         self._overlap_colors: dict[frozenset[int], Colour] = {}
 
-    def calculate(self, gear_values: list[int]) -> list[Colour]:
+    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
         """
         Returns the LED strip as a list of (r, g, b).
         """
         if all(value == 0 for value in gear_values):
-            return [(0, 0, 0) for _ in range(self.led_count)]
+            return [(0, 0, 0) for _ in range(led_count)]
 
         # aggregator[i] = dict {gear_index -> brightness} for LED i
-        aggregator = [dict() for _ in range(self.led_count)]
+        aggregator = [dict() for _ in range(led_count)]
 
         # ────────── Compute partial brightness for each gear ──────────
         for gear_index, gear_value in enumerate(gear_values):
@@ -194,8 +192,8 @@ class SteampunkChargingEffect:
                 255 - self.min_brightness
             )
 
-            for led_i in range(self.led_count):
-                angle_i = (2.0 * math.pi * led_i) / self.led_count
+            for led_i in range(led_count):
+                angle_i = (2.0 * math.pi * led_i) / led_count
                 diff = abs(angle_i - center_angle)
                 angular_dist = min(diff, 2.0 * math.pi - diff)
 
@@ -211,7 +209,7 @@ class SteampunkChargingEffect:
 
         # ────────── Build final LED list ──────────
         final_leds: list[Colour] = []
-        for led_i in range(self.led_count):
+        for led_i in range(led_count):
             gears_here = aggregator[led_i]
             if not gears_here:
                 final_leds.append((0, 0, 0))
@@ -270,22 +268,21 @@ class SteampunkChargingEffect:
 
 
 class StripedEffect(LedEffect):
-    def __init__(self, colours: list[Colour], led_count: int):
+    def __init__(self, colours: list[Colour]):
         self.colours = colours
-        self.led_count = led_count
 
-    def calculate(self, gear_values: list[int]):
+    def calculate(self, gear_values: list[int], led_count: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
 
         gear_values = scale_gear_values(gear_values)
 
-        lights = [(0, 0, 0)] * self.led_count
+        lights = [(0, 0, 0)] * led_count
 
         values_colours = itertools.cycle(zip(gear_values, self.colours, strict=True))
 
-        for i in range(0, self.led_count):
+        for i in range(led_count):
             value, colour = next(values_colours)
             lights[i] = scale_colour(colour, value / 255)
 
@@ -300,8 +297,8 @@ class StaticStripeEffect(LedEffect):
     stripe_spacing: int
     offset: int = 0
 
-    def calculate(self, gear_values: list[int]) -> list[Colour]:
-        lights = self.inner.calculate(gear_values)
+    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+        lights = self.inner.calculate(gear_values, led_count)
         for i in range(
             self.offset, len(lights), self.stripe_width + self.stripe_spacing
         ):
@@ -312,20 +309,19 @@ class StaticStripeEffect(LedEffect):
 
 class SectoredEffect(LedEffect):
 
-    def __init__(self, colours: list[Colour], led_count: int):
+    def __init__(self, colours: list[Colour]):
         self.colours = colours
-        self.led_count = led_count
 
-    def calculate(self, gear_values: list[int]):
+    def calculate(self, gear_values: list[int], led_count: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
 
         gear_values = scale_gear_values(gear_values)
 
-        lights = [(0, 0, 0)] * self.led_count
+        lights = [(0, 0, 0)] * led_count
 
-        sector_length = math.ceil(self.led_count / len(self.colours))
+        sector_length = math.ceil(led_count / len(self.colours))
 
         for sector, (value, colour) in enumerate(
             zip(gear_values, self.colours, strict=True)
@@ -425,14 +421,13 @@ class Seed:
 
 class PulseOnFullChargeEffect(LedEffect):
 
-    def __init__(self, colours: list[Colour], led_count: int):
+    def __init__(self, colours: list[Colour]):
         self.colours = colours
-        self.led_count = led_count
 
         self.pulses: list[None | Pulse] = [None] * len(self.colours)
         self.clock = Clock()
 
-    def calculate(self, gear_values: list[int]):
+    def calculate(self, gear_values: list[int], led_count: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
@@ -445,7 +440,7 @@ class PulseOnFullChargeEffect(LedEffect):
             if pulse is not None and not pulse.done:
                 pulse.progress += dt
 
-        lights = [(0, 0, 0)] * self.led_count
+        lights = [(0, 0, 0)] * led_count
 
         for gear, (gear_value, colour) in enumerate(
             zip(gear_values, self.colours, strict=True)
@@ -499,10 +494,11 @@ class BlorpEffect(LedEffect):
             )
         )
 
-    def calculate(self, gear_values: list[int]):
+    def calculate(self, gear_values: list[int], led_count: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
+        assert self.led_count == led_count
 
         dt = max(self.clock.tick(), 100)
         self.time_since_last_seed_planted += dt
@@ -555,15 +551,14 @@ def add_colours(a: Colour, b: Colour) -> Colour:
 
 @dataclass
 class LayeredEffect(LedEffect):
-    led_count: int
     effects: list[LedEffect]
     blending_fn: Callable[[Colour, Colour], Colour] = add_colours
 
-    def calculate(self, gear_values: list[int]) -> list[Colour]:
-        lights = [(0, 0, 0)] * self.led_count
+    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+        lights = [(0, 0, 0)] * led_count
 
         for effect in self.effects:
-            colours = effect.calculate(gear_values)
+            colours = effect.calculate(gear_values, led_count)
             lights = [
                 add_colours(light, colour)
                 for light, colour in zip(lights, colours, strict=True)
@@ -576,8 +571,8 @@ class LayeredEffect(LedEffect):
 class GammaCorrection(LedEffect):
     inner: LedEffect
 
-    def calculate(self, gear_values: list[int]):
-        lights = self.inner.calculate(gear_values)
+    def calculate(self, gear_values: list[int], led_count):
+        lights = self.inner.calculate(gear_values, led_count)
 
         lights = [
             map_colour(light, lambda channel: GAMMA_CORRECTION[channel])

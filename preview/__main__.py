@@ -9,6 +9,7 @@ import pygame
 from nostmack_hub.led_effect import (
     BlorpEffect,
     LayeredEffect,
+    LedEffect,
     PulseOnFullChargeEffect,
     SectoredEffect,
     SeedConfig,
@@ -16,6 +17,7 @@ from nostmack_hub.led_effect import (
     StripedEffect,
     SteampunkChargingEffect,
 )
+from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
 from preview.draw_leds import draw_coloured_line
 from preview.wled_mock import WledPreset, WledRealtime
@@ -41,16 +43,15 @@ SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
 SOUND_DING = Path(checked_getenv("SOUND_DING"))
 SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
-EFFECTS = [
-    StripedEffect(COLOURS, LED_COUNT),
-    SectoredEffect(COLOURS, LED_COUNT),
-    SteampunkChargingEffect(COLOURS, LED_COUNT),
+EFFECTS: list[LedEffect] = [
+    StripedEffect(COLOURS),
+    SectoredEffect(COLOURS),
+    SteampunkChargingEffect(COLOURS),
     LayeredEffect(
-        led_count=LED_COUNT,
-        effects=[
-            PulseOnFullChargeEffect(COLOURS, LED_COUNT),
+        [
+            PulseOnFullChargeEffect(COLOURS),
             StaticStripeEffect(
-                inner=StripedEffect(COLOURS, LED_COUNT),
+                inner=StripedEffect(COLOURS),
                 colour=(0, 0, 0),
                 stripe_width=5,
                 stripe_spacing=5,
@@ -74,10 +75,16 @@ EFFECTS = [
 async def main():
     with init_pygame_mixer():
 
-        selected_effect = 0
+        selected_effect_index = 0
+
+        def selected_effect():
+            return LedEffectFixedCount(EFFECTS[selected_effect_index], LED_COUNT)
 
         machine, esp_events, wled = init_machine(
-            EFFECTS[selected_effect], SOUND_POOL, SOUND_DING, SOUND_FINALE
+            selected_effect(),
+            SOUND_POOL,
+            SOUND_DING,
+            SOUND_FINALE,
         )
 
         gear_turns = {esp_id: 0.0 for esp_id, _ in machine.esp_mapping.items()}
@@ -85,7 +92,7 @@ async def main():
         clock = pygame.time.Clock()
 
         def gui():
-            nonlocal selected_effect
+            nonlocal selected_effect_index
 
             dt = clock.tick() / 1000
 
@@ -104,10 +111,10 @@ async def main():
 
                 _, value = imgui.list_box(
                     "Effect",
-                    selected_effect,
+                    selected_effect_index,
                     [effect.__class__.__name__ for effect in EFFECTS],
                 )
-                selected_effect = value
+                selected_effect_index = value
                 imgui.text("note: machine must not be charging to change effects")
 
                 if imgui.button("Reset machine"):
@@ -120,7 +127,7 @@ async def main():
                 gear_turns[i] -= sensed_turns
                 esp_events.append((i, sensed_turns))
 
-            machine.effect = EFFECTS[selected_effect]
+            machine.effect = selected_effect()
 
             with imgui_ctx.begin("Pattern"):
                 imgui.set_window_pos((0, 0), imgui.Cond_.first_use_ever.value)

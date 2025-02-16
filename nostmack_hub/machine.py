@@ -5,7 +5,7 @@ from pygame.mixer import Sound
 
 from nostmack_hub.led_effect import LedEffect
 from nostmack_hub.gear import Gear
-from nostmack_hub.led_value_calculator import LedValueCalculator
+from nostmack_hub.led_value_calculator import LedEffectFixedCount, LedValueCalculator
 from nostmack_hub.machine_state import MachineState
 from nostmack_hub.sounds import Sounds
 from nostmack_hub.wled import WledProtocol
@@ -22,7 +22,7 @@ class Machine:
         esp_mapping: dict[int, Gear],
         esp_events: EspEvents,
         wled: WledProtocol,
-        effect: LedEffect,
+        effect: LedEffectFixedCount,
         sounds: Sounds,
         finale: Sound,
     ):
