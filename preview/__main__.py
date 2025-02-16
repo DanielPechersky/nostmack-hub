@@ -51,7 +51,7 @@ EFFECTS: list[LedEffect] = [
         [
             PulseOnFullChargeEffect(COLOURS),
             alternating_stripe_effect(
-                shimmer(StripedEffect(COLOURS), 0.3),
+                StripedEffect(COLOURS),
                 5,
                 BlorpEffect(
                     COLOURS,
