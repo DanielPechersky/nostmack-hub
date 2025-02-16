@@ -44,9 +44,6 @@ SOUND_DING = Path(checked_getenv("SOUND_DING"))
 SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 EFFECTS: list[LedEffect] = [
-    StripedEffect(COLOURS),
-    SectoredEffect(COLOURS),
-    SteampunkChargingEffect(COLOURS),
     LayeredEffect(
         [
             PulseOnFullChargeEffect(COLOURS),
@@ -62,6 +59,9 @@ EFFECTS: list[LedEffect] = [
             ),
         ],
     ),
+    StripedEffect(COLOURS),
+    SectoredEffect(COLOURS),
+    SteampunkChargingEffect(COLOURS),
 ]
 
 
