@@ -16,6 +16,7 @@ from nostmack_hub.led_effect import (
     StaticStripeEffect,
     StripedEffect,
     SteampunkChargingEffect,
+    alternating_stripe_effect,
 )
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
@@ -50,22 +51,15 @@ EFFECTS: list[LedEffect] = [
     LayeredEffect(
         [
             PulseOnFullChargeEffect(COLOURS),
-            StaticStripeEffect(
-                inner=StripedEffect(COLOURS),
-                colour=(0, 0, 0),
-                stripe_width=5,
-                stripe_spacing=5,
-            ),
-            StaticStripeEffect(
+            alternating_stripe_effect(
+                StripedEffect(COLOURS),
+                5,
                 BlorpEffect(
                     COLOURS,
                     LED_COUNT,
                     SeedConfig(influence_size=31, ramp_time=500, dissapate_time=5000),
                 ),
-                colour=(0, 0, 0),
-                stripe_width=5,
-                stripe_spacing=5,
-                offset=5,
+                5,
             ),
         ],
     ),

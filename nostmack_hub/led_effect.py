@@ -303,8 +303,33 @@ class StaticStripeEffect(LedEffect):
             self.offset, len(lights), self.stripe_width + self.stripe_spacing
         ):
             for j in range(self.stripe_width):
-                lights[i + j] = self.colour
+                try:
+                    lights[i + j] = self.colour
+                except IndexError:
+                    break
         return lights
+
+
+def alternating_stripe_effect(
+    left: LedEffect, left_width: int, right: LedEffect, right_width: int
+):
+    return LayeredEffect(
+        [
+            StaticStripeEffect(
+                left,
+                colour=(0, 0, 0),
+                stripe_width=left_width,
+                stripe_spacing=right_width,
+            ),
+            StaticStripeEffect(
+                right,
+                colour=(0, 0, 0),
+                stripe_width=right_width,
+                stripe_spacing=left_width,
+                offset=left_width,
+            ),
+        ]
+    )
 
 
 class SectoredEffect(LedEffect):
