@@ -366,46 +366,90 @@ class SeedConfig:
     dissapate_time: int
 
 
+class Animation(Protocol):
+    @property
+    def total_time(self) -> int:
+        raise NotImplementedError
+
+    def value(self, progress: int) -> float:
+        raise NotImplementedError
+
+
+class AnimatedValue:
+    def __init__(self, animation: Animation, progress: int = 0):
+        self.animation = animation
+        self._progress = progress
+
+    @property
+    def finished_animating(self) -> bool:
+        return self._progress > self.animation.total_time
+
+    def tick(self, delta):
+        if not self.finished_animating:
+            self._progress += delta
+
+    def value(self) -> float:
+        return self.animation.value(self._progress)
+
+
 @dataclass
-class RampDissapate:
-    ramp_time: int
-    dissapate_time: int
+class Ramp(Animation):
+    time: int
 
     @property
     def total_time(self):
-        return self.ramp_time + self.dissapate_time
+        return self.time
 
-    def done(self, progress):
-        return progress >= self.total_time
-
-    def intensity(self, progress):
-        ramp_up_time = self.ramp_time
-        dissapate_time = self.dissapate_time
-
-        if progress < ramp_up_time:
-            return progress / ramp_up_time
-        progress -= ramp_up_time
-
-        return max(dissapate_time - progress, 0) / dissapate_time
+    def value(self, progress):
+        if progress > self.time:
+            return 0
+        return progress / self.time
 
 
 @dataclass
-class Pulse:
-    ramp_dissapate: RampDissapate
-
-    progress: int = 0
+class Hold(Animation):
+    time: int
 
     @property
     def total_time(self):
-        return self.ramp_dissapate.total_time
+        return self.time
+
+    def value(self, progress):
+        if progress > self.time:
+            return 0
+        return 1
+
+
+@dataclass
+class Dissapate(Animation):
+    time: int
 
     @property
-    def done(self):
-        return self.ramp_dissapate.done(self.progress)
+    def total_time(self):
+        return self.time
+
+    def value(self, progress):
+        if progress > self.time:
+            return 0
+
+        return max(self.time - progress, 0) / self.time
+
+
+@dataclass
+class Animations(Animation):
+    animations: list[Animation]
 
     @property
-    def intensity(self) -> float:
-        return self.ramp_dissapate.intensity(self.progress)
+    def total_time(self):
+        return sum(a.total_time for a in self.animations)
+
+    def value(self, progress):
+        for animation in self.animations:
+            if progress <= animation.total_time:
+                return animation.value(progress)
+
+            progress -= animation.total_time
+        return 0
 
 
 @dataclass
@@ -414,30 +458,25 @@ class Seed:
     gear: int
 
     influence_size: int
-    ramp_dissapate: RampDissapate
 
-    progress: int = 0
+    animated_intensity: AnimatedValue
+
+    @property
+    def done(self):
+        return self.animated_intensity.finished_animating
+
+    def intensity(self) -> float:
+        return self.animated_intensity.value()
 
     @property
     def influence_center(self):
         return self.influence_size // 2
 
-    @property
-    def total_time(self):
-        return self.ramp_dissapate.total_time
-
-    @property
-    def is_expired(self):
-        return self.ramp_dissapate.done(self.progress)
-
-    @property
-    def intensity(self) -> float:
-        return self.ramp_dissapate.intensity(self.progress)
-
     def influence_fn(self, position: int) -> float:
         a = (self.influence_size / 2) ** -2
         return (
-            max(1.0 - a * ((self.influence_center - position)) ** 2, 0) * self.intensity
+            max(1.0 - a * ((self.influence_center - position)) ** 2, 0)
+            * self.intensity()
         )
 
     def influence(self):
@@ -449,7 +488,7 @@ class PulseOnFullChargeEffect(LedEffect):
     def __init__(self, colours: list[Colour]):
         self.colours = colours
 
-        self.pulses: list[None | Pulse] = [None] * len(self.colours)
+        self.pulses: list[None | AnimatedValue] = [None] * len(self.colours)
         self.clock = Clock()
 
     def calculate(self, gear_values: list[int], led_count: int):
@@ -462,8 +501,8 @@ class PulseOnFullChargeEffect(LedEffect):
         gear_values = scale_gear_values(gear_values)
 
         for pulse in self.pulses:
-            if pulse is not None and not pulse.done:
-                pulse.progress += dt
+            if pulse is not None:
+                pulse.tick(dt)
 
         lights = [(0, 0, 0)] * led_count
 
@@ -473,14 +512,14 @@ class PulseOnFullChargeEffect(LedEffect):
 
             if gear_value == 255:
                 if self.pulses[gear] is None:
-                    self.pulses[gear] = Pulse(
-                        RampDissapate(ramp_time=1000, dissapate_time=3000)
+                    self.pulses[gear] = AnimatedValue(
+                        Animations([Ramp(1000), Dissapate(3000)])
                     )
             else:
                 self.pulses[gear] = None
 
             if (pulse := self.pulses[gear]) is not None:
-                pulse_colour = scale_colour(colour, pulse.intensity)
+                pulse_colour = scale_colour(colour, pulse.value())
                 for i in range(len(lights)):
                     lights[i] = add_colours(lights[i], pulse_colour)
 
@@ -513,8 +552,10 @@ class BlorpEffect(LedEffect):
                 position,
                 gear,
                 influence_size=self.seed_config.influence_size,
-                ramp_dissapate=RampDissapate(
-                    self.seed_config.ramp_time, dissapate_time
+                animated_intensity=AnimatedValue(
+                    Animations(
+                        [Ramp(self.seed_config.ramp_time), Dissapate(dissapate_time)]
+                    )
                 ),
             )
         )
@@ -538,7 +579,7 @@ class BlorpEffect(LedEffect):
         layers = []
 
         for seed in self.seeds:
-            seed.progress += dt
+            seed.animated_intensity.tick(dt)
 
         for gear, (gear_value, colour) in enumerate(
             zip(gear_values, self.colours, strict=True)
@@ -565,7 +606,7 @@ class BlorpEffect(LedEffect):
             for layer in layers:
                 lights[i] = add_colours(lights[i], layer[i])
 
-        self.seeds = [seed for seed in self.seeds if not seed.is_expired]
+        self.seeds = [seed for seed in self.seeds if not seed.done]
 
         return lights
 
