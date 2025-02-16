@@ -8,8 +8,9 @@ from pygame.mixer import Sound
 
 from nostmack_hub import esp_connection_restarter, esp_diagnostics, esp_listener
 from nostmack_hub.cancel_on_signal import cancel_on_signal
-from nostmack_hub.led_effect import GammaCorrection, SectoredEffect
+from nostmack_hub.led_effect import SectoredEffect
 from nostmack_hub.gear import Gear
+from nostmack_hub.led_effect.gamma_correction import GammaCorrection
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from nostmack_hub.machine import Machine
 from nostmack_hub.sounds import Sounds

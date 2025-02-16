@@ -7,18 +7,16 @@ import dotenv
 import pygame
 
 from nostmack_hub.led_effect import (
-    BlorpEffect,
     LayeredEffect,
     LedEffect,
     PulseOnFullChargeEffect,
     SectoredEffect,
-    SeedConfig,
-    StaticStripeEffect,
     StripedEffect,
-    SteampunkChargingEffect,
     alternating_stripe_effect,
     shimmer,
 )
+from nostmack_hub.led_effect.blorp_effect import BlorpEffect, SeedConfig
+from nostmack_hub.led_effect.steampunk_charging_effect import SteampunkChargingEffect
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
 from preview.draw_leds import draw_coloured_line
