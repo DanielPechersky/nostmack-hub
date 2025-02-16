@@ -7,7 +7,12 @@ import dotenv
 import pygame
 
 from nostmack_hub.led_effect import (
+    BlorpEffect,
+    LayeredEffect,
+    PulseOnFullChargeEffect,
     SectoredEffect,
+    SeedConfig,
+    StaticStripeEffect,
     StripedEffect,
     SteampunkChargingEffect,
 )
@@ -40,6 +45,29 @@ EFFECTS = [
     StripedEffect(COLOURS, LED_COUNT),
     SectoredEffect(COLOURS, LED_COUNT),
     SteampunkChargingEffect(COLOURS, LED_COUNT),
+    LayeredEffect(
+        led_count=LED_COUNT,
+        effects=[
+            PulseOnFullChargeEffect(COLOURS, LED_COUNT),
+            StaticStripeEffect(
+                inner=StripedEffect(COLOURS, LED_COUNT),
+                colour=(0, 0, 0),
+                stripe_width=5,
+                stripe_spacing=5,
+            ),
+            StaticStripeEffect(
+                BlorpEffect(
+                    COLOURS,
+                    LED_COUNT,
+                    SeedConfig(influence_size=31, ramp_time=500, dissapate_time=5000),
+                ),
+                colour=(0, 0, 0),
+                stripe_width=5,
+                stripe_spacing=5,
+                offset=5,
+            ),
+        ],
+    ),
 ]
 
 

@@ -1,8 +1,10 @@
 import itertools
 import math
-from typing import Protocol
+from typing import Callable, Protocol
 import random
 from dataclasses import dataclass
+
+from pygame.time import Clock
 
 from nostmack_hub.gamma_correction import GAMMA_CORRECTION
 
@@ -132,7 +134,7 @@ class SteampunkChargingEffect:
         led_count: int,
         turn: float = 1.0,
         max_spread: float = 1.0,
-        min_brightness: int = 40
+        min_brightness: int = 40,
     ):
         self.colours = colours
         self.led_count = led_count
@@ -146,13 +148,11 @@ class SteampunkChargingEffect:
         for i in range(num_gears):
             base_angle = (2.0 * math.pi * i) / num_gears
             jittered_angle = base_angle + random.uniform(-0.2, 0.2)
-            jittered_angle %= (2.0 * math.pi)
+            jittered_angle %= 2.0 * math.pi
             self._centers.append(jittered_angle)
 
         # 2) Random exponent factor per gear for “liquidy” fade.
-        self._exp_factors = [
-            random.uniform(1.5, 2.5) for _ in range(num_gears)
-        ]
+        self._exp_factors = [random.uniform(1.5, 2.5) for _ in range(num_gears)]
 
         # 3) Predefine or dynamically store overlap colors.
         self._overlap_colors_map: dict[frozenset[int], Colour] = {
@@ -190,9 +190,8 @@ class SteampunkChargingEffect:
 
             fraction = min(1.0, gear_value / (self.turn * 255.0))
             spread = fraction * (self.max_spread * (math.pi / 2))
-            center_brightness = (
-                self.min_brightness
-                + fraction * (255 - self.min_brightness)
+            center_brightness = self.min_brightness + fraction * (
+                255 - self.min_brightness
             )
 
             for led_i in range(self.led_count):
@@ -203,7 +202,7 @@ class SteampunkChargingEffect:
                 if angular_dist <= spread:
                     # "Liquidy" fade
                     norm_dist = angular_dist / spread
-                    fade_factor = 1.0 - (norm_dist ** exp_factor)
+                    fade_factor = 1.0 - (norm_dist**exp_factor)
                     fade_factor = max(min(fade_factor, 1.0), 0.0)
                     brightness = self.min_brightness + fade_factor * (
                         center_brightness - self.min_brightness
@@ -284,13 +283,30 @@ class StripedEffect(LedEffect):
 
         lights = [(0, 0, 0)] * self.led_count
 
-        values_colours = itertools.cycle(
-            zip(gear_values, self.colours, strict=True))
+        values_colours = itertools.cycle(zip(gear_values, self.colours, strict=True))
 
         for i in range(0, self.led_count):
             value, colour = next(values_colours)
             lights[i] = scale_colour(colour, value / 255)
 
+        return lights
+
+
+@dataclass
+class StaticStripeEffect(LedEffect):
+    inner: LedEffect
+    colour: Colour
+    stripe_width: int
+    stripe_spacing: int
+    offset: int = 0
+
+    def calculate(self, gear_values: list[int]) -> list[Colour]:
+        lights = self.inner.calculate(gear_values)
+        for i in range(
+            self.offset, len(lights), self.stripe_width + self.stripe_spacing
+        ):
+            for j in range(self.stripe_width):
+                lights[i + j] = self.colour
         return lights
 
 
@@ -318,6 +334,240 @@ class SectoredEffect(LedEffect):
             end = (sector + 1) * sector_length
             for i in range(start, end):
                 lights[i] = scale_colour(colour, value / 255)
+
+        return lights
+
+
+@dataclass
+class SeedConfig:
+    influence_size: int
+    ramp_time: int
+    dissapate_time: int
+
+
+@dataclass
+class RampDissapate:
+    ramp_time: int
+    dissapate_time: int
+
+    @property
+    def total_time(self):
+        return self.ramp_time + self.dissapate_time
+
+    def done(self, progress):
+        return progress >= self.total_time
+
+    def intensity(self, progress):
+        ramp_up_time = self.ramp_time
+        dissapate_time = self.dissapate_time
+
+        if progress < ramp_up_time:
+            return progress / ramp_up_time
+        progress -= ramp_up_time
+
+        return max(dissapate_time - progress, 0) / dissapate_time
+
+
+@dataclass
+class Pulse:
+    ramp_dissapate: RampDissapate
+
+    progress: int = 0
+
+    @property
+    def total_time(self):
+        return self.ramp_dissapate.total_time
+
+    @property
+    def done(self):
+        return self.ramp_dissapate.done(self.progress)
+
+    @property
+    def intensity(self) -> float:
+        return self.ramp_dissapate.intensity(self.progress)
+
+
+@dataclass
+class Seed:
+    position: int
+    gear: int
+
+    influence_size: int
+    ramp_dissapate: RampDissapate
+
+    progress: int = 0
+
+    @property
+    def influence_center(self):
+        return self.influence_size // 2
+
+    @property
+    def total_time(self):
+        return self.ramp_dissapate.total_time
+
+    @property
+    def is_expired(self):
+        return self.ramp_dissapate.done(self.progress)
+
+    @property
+    def intensity(self) -> float:
+        return self.ramp_dissapate.intensity(self.progress)
+
+    def influence_fn(self, position: int) -> float:
+        a = (self.influence_size / 2) ** -2
+        return (
+            max(1.0 - a * ((self.influence_center - position)) ** 2, 0) * self.intensity
+        )
+
+    def influence(self):
+        return [self.influence_fn(p) for p in range(self.influence_size)]
+
+
+class PulseOnFullChargeEffect(LedEffect):
+
+    def __init__(self, colours: list[Colour], led_count: int):
+        self.colours = colours
+        self.led_count = led_count
+
+        self.pulses: list[None | Pulse] = [None] * len(self.colours)
+        self.clock = Clock()
+
+    def calculate(self, gear_values: list[int]):
+        assert len(gear_values) == len(
+            self.colours
+        ), "Received wrong number of gear values"
+
+        dt = max(self.clock.tick(), 100)
+
+        gear_values = scale_gear_values(gear_values)
+
+        for pulse in self.pulses:
+            if pulse is not None and not pulse.done:
+                pulse.progress += dt
+
+        lights = [(0, 0, 0)] * self.led_count
+
+        for gear, (gear_value, colour) in enumerate(
+            zip(gear_values, self.colours, strict=True)
+        ):
+
+            if gear_value == 255:
+                if self.pulses[gear] is None:
+                    self.pulses[gear] = Pulse(
+                        RampDissapate(ramp_time=1000, dissapate_time=3000)
+                    )
+            else:
+                self.pulses[gear] = None
+
+            if (pulse := self.pulses[gear]) is not None:
+                pulse_colour = scale_colour(colour, pulse.intensity)
+                for i in range(len(lights)):
+                    lights[i] = add_colours(lights[i], pulse_colour)
+
+        return lights
+
+
+class BlorpEffect(LedEffect):
+
+    def __init__(self, colours: list[Colour], led_count: int, seed_config: SeedConfig):
+        self.colours = colours
+        self.led_count = led_count
+        self.seed_config = seed_config
+
+        self.seeds: list[Seed] = []
+        self.time_since_last_seed_planted: int = 0
+        self.clock = Clock()
+
+    def plant_new_seed(self):
+        gear = random.randrange(len(self.colours))
+
+        cluster_center = self.led_count // len(self.colours) * gear
+
+        position = cluster_center + int(random.gauss(sigma=self.led_count / 8))
+        position %= self.led_count
+
+        dissapate_time = self.seed_config.dissapate_time + int(random.gauss(sigma=1000))
+
+        self.seeds.append(
+            Seed(
+                position,
+                gear,
+                influence_size=self.seed_config.influence_size,
+                ramp_dissapate=RampDissapate(
+                    self.seed_config.ramp_time, dissapate_time
+                ),
+            )
+        )
+
+    def calculate(self, gear_values: list[int]):
+        assert len(gear_values) == len(
+            self.colours
+        ), "Received wrong number of gear values"
+
+        dt = max(self.clock.tick(), 100)
+        self.time_since_last_seed_planted += dt
+
+        SEED_FREQUENCY = 50
+        while self.time_since_last_seed_planted > SEED_FREQUENCY:
+            self.plant_new_seed()
+            self.time_since_last_seed_planted -= SEED_FREQUENCY
+
+        gear_values = scale_gear_values(gear_values)
+
+        layers = []
+
+        for seed in self.seeds:
+            seed.progress += dt
+
+        for gear, (gear_value, colour) in enumerate(
+            zip(gear_values, self.colours, strict=True)
+        ):
+            layer = [(0, 0, 0)] * self.led_count
+
+            for seed in self.seeds:
+                if seed.gear == gear:
+                    influence = seed.influence()
+                    colours = [
+                        scale_colour(colour, intensity) for intensity in influence
+                    ]
+                    for i, c in enumerate(colours, start=seed.position):
+                        i = i % len(layer)
+                        layer[i] = add_colours(layer[i], c)
+
+            layer = [scale_colour(colour, gear_value / 255) for colour in layer]
+
+            layers.append(layer)
+
+        lights = [(0, 0, 0)] * self.led_count
+
+        for i in range(self.led_count):
+            for layer in layers:
+                lights[i] = add_colours(lights[i], layer[i])
+
+        self.seeds = [seed for seed in self.seeds if not seed.is_expired]
+
+        return lights
+
+
+def add_colours(a: Colour, b: Colour) -> Colour:
+    return map_colour((a[0] + b[0], a[1] + b[1], a[2] + b[2]), lambda c: min(c, 255))
+
+
+@dataclass
+class LayeredEffect(LedEffect):
+    led_count: int
+    effects: list[LedEffect]
+    blending_fn: Callable[[Colour, Colour], Colour] = add_colours
+
+    def calculate(self, gear_values: list[int]) -> list[Colour]:
+        lights = [(0, 0, 0)] * self.led_count
+
+        for effect in self.effects:
+            colours = effect.calculate(gear_values)
+            lights = [
+                add_colours(light, colour)
+                for light, colour in zip(lights, colours, strict=True)
+            ]
 
         return lights
 
