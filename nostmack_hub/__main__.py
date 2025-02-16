@@ -8,7 +8,7 @@ from pygame.mixer import Sound
 
 from nostmack_hub import esp_connection_restarter, esp_diagnostics, esp_listener
 from nostmack_hub.cancel_on_signal import cancel_on_signal
-from nostmack_hub.led_effect import SectoredEffect
+from nostmack_hub.led_effect import flowing_memento
 from nostmack_hub.gear import Gear
 from nostmack_hub.led_effect.gamma_correction import GammaCorrection
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
@@ -51,7 +51,10 @@ async def main():
             esp_events=listen_to_esps(list(esp_mapping.keys())),
             wled=Wled(WLED_ADDRESS),
             effect=LedEffectFixedCount(
-                GammaCorrection(SectoredEffect(COLOURS[: len(esp_mapping)])), LED_COUNT
+                GammaCorrection(
+                    flowing_memento.effect(COLOURS, LED_COUNT),
+                ),
+                LED_COUNT,
             ),
             sounds=sounds,
             finale=Sound(SOUND_FINALE),

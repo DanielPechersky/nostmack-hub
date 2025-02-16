@@ -7,15 +7,11 @@ import dotenv
 import pygame
 
 from nostmack_hub.led_effect import (
-    LayeredEffect,
     LedEffect,
-    PulseOnFullChargeEffect,
     SectoredEffect,
     StripedEffect,
-    alternating_stripe_effect,
-    shimmer,
 )
-from nostmack_hub.led_effect.blorp_effect import BlorpEffect, SeedConfig
+from nostmack_hub.led_effect import flowing_memento
 from nostmack_hub.led_effect.steampunk_charging_effect import SteampunkChargingEffect
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
@@ -44,21 +40,7 @@ SOUND_DING = Path(checked_getenv("SOUND_DING"))
 SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 EFFECTS: list[LedEffect] = [
-    LayeredEffect(
-        [
-            PulseOnFullChargeEffect(COLOURS),
-            alternating_stripe_effect(
-                StripedEffect(COLOURS),
-                5,
-                BlorpEffect(
-                    COLOURS,
-                    LED_COUNT,
-                    SeedConfig(influence_size=31, ramp_time=500, dissapate_time=5000),
-                ),
-                5,
-            ),
-        ],
-    ),
+    flowing_memento.effect(COLOURS, LED_COUNT),
     StripedEffect(COLOURS),
     SectoredEffect(COLOURS),
     SteampunkChargingEffect(COLOURS),
