@@ -72,15 +72,15 @@ def alternating_stripe_effect(
             StaticStripeEffect(
                 left,
                 colour=(0, 0, 0),
-                stripe_width=left_width,
-                stripe_spacing=right_width,
+                stripe_width=right_width,
+                stripe_spacing=left_width,
+                offset=left_width,
             ),
             StaticStripeEffect(
                 right,
                 colour=(0, 0, 0),
-                stripe_width=right_width,
-                stripe_spacing=left_width,
-                offset=left_width,
+                stripe_width=left_width,
+                stripe_spacing=right_width,
             ),
         ]
     )

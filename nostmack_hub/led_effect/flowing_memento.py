@@ -13,13 +13,13 @@ def effect(colours, led_count):
             PulseOnFullChargeEffect(colours),
             alternating_stripe_effect(
                 StripedEffect(colours),
-                20,
+                5,
                 BlorpEffect(
                     colours,
                     led_count,
                     SeedConfig(influence_size=31, ramp_time=500, dissapate_time=5000),
                 ),
-                5,
+                20,
             ),
         ],
     )
