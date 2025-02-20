@@ -159,7 +159,7 @@ class PulseOnFullChargeEffect(LedEffect):
             if gear_value == 255:
                 if self.pulses[gear] is None:
                     self.pulses[gear] = AnimatedValue(
-                        Animations([Ramp(1000), Dissapate(3000)])
+                        Animations([Ramp(400), Dissapate(1000)])
                     )
             else:
                 self.pulses[gear] = None
