@@ -142,7 +142,7 @@ class PulseOnFullChargeEffect(LedEffect):
             self.colours
         ), "Received wrong number of gear values"
 
-        dt = max(self.clock.tick(), 100)
+        dt = self.clock.tick()
 
         gear_values = scale_gear_values(gear_values)
 

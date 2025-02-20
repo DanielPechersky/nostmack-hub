@@ -55,7 +55,7 @@ class BlorpEffect(LedEffect):
         ), "Received wrong number of gear values"
         assert self.led_count == led_count
 
-        dt = max(self.clock.tick(), 100)
+        dt = self.clock.tick()
         self.time_since_last_seed_planted += dt
 
         SEED_FREQUENCY = 50
