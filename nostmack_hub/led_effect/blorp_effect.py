@@ -31,7 +31,7 @@ class BlorpEffect(LedEffect):
 
         cluster_center = self.led_count // len(self.colours) * gear
 
-        position = cluster_center + int(random.gauss(sigma=self.led_count / 8))
+        position = cluster_center + int(random.gauss(sigma=self.led_count / 16))
         position %= self.led_count
 
         dissapate_time = self.seed_config.dissapate_time + int(random.gauss(sigma=1000))
