@@ -2,7 +2,7 @@ monitor:
     ssh nostmack-pi 'journalctl -f -u nostmack-hub'
 
 ssh:
-   ssh nostmack-pi
+    ssh nostmack-pi
 
 disable_hotspot: (systemctl "disable")
     ssh nostmack-pi 'sudo reboot'
@@ -45,7 +45,7 @@ systemctl command:
     ssh nostmack-pi 'sudo systemctl {{ command }} nostmack-hub'
 
 test:
-   poetry run pytest
+    poetry run pytest
 
 preview:
     poetry run python -m preview
