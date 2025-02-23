@@ -4,9 +4,6 @@ monitor:
 ssh:
     ssh nostmack-pi
 
-disable_hotspot: (systemctl "disable")
-    ssh nostmack-pi 'sudo reboot'
-
 build_docker:
     docker build -t nostmack_hub .
 
