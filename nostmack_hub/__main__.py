@@ -1,12 +1,11 @@
 import asyncio
 from contextlib import contextmanager
-from datetime import timedelta
 from pathlib import Path
 
 import pygame.mixer
 from pygame.mixer import Sound
 
-from nostmack_hub import esp_connection_restarter, esp_diagnostics, esp_listener
+from nostmack_hub import esp_diagnostics, esp_listener
 from nostmack_hub.cancel_on_signal import cancel_on_signal
 from nostmack_hub.led_effect import flowing_memento
 from nostmack_hub.gear import Gear
@@ -48,7 +47,7 @@ async def main():
         )
         machine = Machine(
             esp_mapping=esp_mapping,
-            esp_events=listen_to_esps(list(esp_mapping.keys())),
+            esp_events=listen_to_esps(),
             wled=Wled(WLED_ADDRESS),
             effect=LedEffectFixedCount(
                 GammaCorrection(
@@ -63,22 +62,12 @@ async def main():
         await machine.run()
 
 
-async def listen_to_esps(esp_ids: list[int]):
-    async with (
-        esp_diagnostics.start(time_between_prints=1) as diagnostics,
-        esp_connection_restarter.start(
-            esp_ids, timeout=timedelta(minutes=3), restart_fn=shutdown
-        ) as restarter,
-    ):
+async def listen_to_esps():
+    async with esp_diagnostics.start(time_between_prints=1) as diagnostics:
         async for id, count in esp_listener.listen_to_esps():
             diagnostics.seen(id)
-            restarter.seen(id)
 
             yield id, count
-
-
-async def shutdown():
-    await asyncio.create_subprocess_exec("systemctl", "reboot")
 
 
 @contextmanager
