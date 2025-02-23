@@ -20,7 +20,7 @@ deploy_docker: && (systemctl "restart")
     install_dir=$(ssh nostmack-pi mktemp -d)
     rsync --progress nostmack_hub.tar "nostmack-pi:${install_dir}"
 
-    ssh nostmack-pi sudo docker load --input "${install_dir}/nostmack_hub.tar"
+    ssh nostmack-pi sudo podman load --input "${install_dir}/nostmack_hub.tar"
 
     ssh nostmack-pi rm -rf "${install_dir}"
 

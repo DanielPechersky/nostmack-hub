@@ -1,8 +1,8 @@
 import os
 
 os.execlp(
-    "docker",
-    "docker",
+    "podman",
+    "podman",
     "run",
     "--privileged",
     "--env-file",
@@ -16,5 +16,6 @@ os.execlp(
     "/var/run/dbus:/var/run/dbus",
     "-v",
     "/var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket",
+    "--log-driver=none",
     "nostmack_hub",
 )

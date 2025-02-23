@@ -1,5 +1,7 @@
 [Unit]
 Description=Maintain a wifi hotspot and control WLED
+After=syslog.target network.target network-online.target
+Requires=network-online.target
 
 [Service]
 User=root
