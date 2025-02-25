@@ -4,6 +4,7 @@ os.execlp(
     "podman",
     "podman",
     "run",
+    "--rm",
     "--privileged",
     "--network=host",
     "--env-file",
