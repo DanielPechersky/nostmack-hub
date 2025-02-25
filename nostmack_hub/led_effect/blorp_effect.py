@@ -62,6 +62,7 @@ class BlorpEffect(LedEffect):
 
         self.time_since_last_seed_planted += delta_time
 
+        self.seeds = [seed for seed in self.seeds if not seed.done]
         while self.time_since_last_seed_planted > SEED_FREQUENCY:
             self.plant_new_seed()
             self.time_since_last_seed_planted -= SEED_FREQUENCY
@@ -97,8 +98,6 @@ class BlorpEffect(LedEffect):
         for i in range(self.led_count):
             for layer in layers:
                 lights[i] = add_colours(lights[i], layer[i])
-
-        self.seeds = [seed for seed in self.seeds if not seed.done]
 
         return lights
 
