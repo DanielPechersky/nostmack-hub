@@ -21,7 +21,7 @@ SEED_FREQUENCY = 50
 class BlorpEffect(LedEffect):
 
     def __init__(self, colours: list[Colour], led_count: int, seed_config: SeedConfig):
-        self.colours = colours
+        self.colours = np.array(colours)
         self.led_count = led_count
         self.seed_config = seed_config
 
@@ -71,7 +71,7 @@ class BlorpEffect(LedEffect):
 
         gear_values = scale_gear_values(gear_values)
 
-        layers = []
+        lights = np.zeros((self.led_count, 3))
 
         for seed in self.seeds:
             seed.animated_intensity.tick(delta_time)
@@ -79,29 +79,20 @@ class BlorpEffect(LedEffect):
         for gear, (gear_value, colour) in enumerate(
             zip(gear_values, self.colours, strict=True)
         ):
-            layer = [(0, 0, 0)] * self.led_count
+            layer = np.zeros((self.led_count, 3))
 
             for seed in self.seeds:
                 if seed.gear == gear:
                     influence = seed.influence()
-                    colours = [
-                        scale_colour(colour, intensity) for intensity in influence
-                    ]
-                    for i, c in enumerate(colours, start=seed.position):
-                        i = i % len(layer)
-                        layer[i] = add_colours(layer[i], c)
+                    colours = influence[:, np.newaxis] * colour
+                    indices = (seed.position + np.arange(len(colours))) % len(layer)
+                    layer[indices] += colours
 
-            layer = [scale_colour(colour, gear_value / 255) for colour in layer]
+            layer *= gear_value / 255
 
-            layers.append(layer)
+            lights = (lights + layer).clip(max=255)
 
-        lights = [(0, 0, 0)] * self.led_count
-
-        for i in range(self.led_count):
-            for layer in layers:
-                lights[i] = add_colours(lights[i], layer[i])
-
-        return lights
+        return lights.round().astype(int).tolist()
 
 
 @dataclass
