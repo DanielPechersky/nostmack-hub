@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import random
 
+import numpy as np
+
 from nostmack_hub.led_effect import LedEffect, scale_gear_values
 from nostmack_hub.led_effect.animation import AnimatedValue, Animations, Dissapate, Ramp
 from nostmack_hub.led_effect.colour import Colour, add_colours, scale_colour
@@ -122,12 +124,9 @@ class Seed:
     def influence_center(self):
         return self.influence_size // 2
 
-    def influence_fn(self, position: int) -> float:
-        a = (self.influence_size / 2) ** -2
-        return (
-            max(1.0 - a * ((self.influence_center - position)) ** 2, 0)
-            * self.intensity()
-        )
-
     def influence(self):
-        return [self.influence_fn(p) for p in range(self.influence_size)]
+        values = np.arange(self.influence_size)
+        a = (self.influence_size / 2) ** -2
+        return (1.0 - a * (self.influence_center - values) ** 2).clip(
+            min=0
+        ) * self.intensity()
