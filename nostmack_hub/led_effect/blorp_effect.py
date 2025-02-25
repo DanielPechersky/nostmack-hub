@@ -24,6 +24,11 @@ class BlorpEffect(LedEffect):
         self.time_since_last_seed_planted: int = 0
 
     def plant_new_seed(self):
+        MAX_SEEDS = 50
+
+        if len(self.seeds) >= MAX_SEEDS:
+            return
+
         gear = random.randrange(len(self.colours))
 
         cluster_center = self.led_count // len(self.colours) * gear
