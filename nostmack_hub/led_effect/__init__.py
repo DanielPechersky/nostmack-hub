@@ -4,8 +4,6 @@ from typing import Callable, Protocol
 import random
 from dataclasses import dataclass
 
-from pygame.time import Clock
-
 from nostmack_hub.gamma_correction import GAMMA_CORRECTION
 from nostmack_hub.led_effect.animation import AnimatedValue, Animations, Dissapate, Ramp
 from nostmack_hub.led_effect.colour import (
@@ -17,7 +15,9 @@ from nostmack_hub.led_effect.colour import (
 
 
 class LedEffect(Protocol):
-    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+    def calculate(
+        self, gear_values: list[int], led_count: int, delta_time: int
+    ) -> list[Colour]:
         raise NotImplementedError
 
 
@@ -25,7 +25,7 @@ class StripedEffect(LedEffect):
     def __init__(self, colours: list[Colour]):
         self.colours = colours
 
-    def calculate(self, gear_values: list[int], led_count: int):
+    def calculate(self, gear_values: list[int], led_count: int, delta_time: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
@@ -51,8 +51,10 @@ class StaticStripeEffect(LedEffect):
     stripe_spacing: int
     offset: int = 0
 
-    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
-        lights = self.inner.calculate(gear_values, led_count)
+    def calculate(
+        self, gear_values: list[int], led_count: int, delta_time: int
+    ) -> list[Colour]:
+        lights = self.inner.calculate(gear_values, led_count, delta_time)
         for i in range(
             self.offset, len(lights), self.stripe_width + self.stripe_spacing
         ):
@@ -91,7 +93,7 @@ class SectoredEffect(LedEffect):
     def __init__(self, colours: list[Colour]):
         self.colours = colours
 
-    def calculate(self, gear_values: list[int], led_count: int):
+    def calculate(self, gear_values: list[int], led_count: int, delta_time: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
@@ -117,7 +119,9 @@ class ShimmerEffect(LedEffect):
     def __init__(self, colour: Colour):
         self.colour = colour
 
-    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+    def calculate(
+        self, gear_values: list[int], led_count: int, delta_time: int
+    ) -> list[Colour]:
         return [scale_colour(self.colour, random.random()) for _ in range(led_count)]
 
 
@@ -135,20 +139,17 @@ class PulseOnFullChargeEffect(LedEffect):
         self.colours = colours
 
         self.pulses: list[None | AnimatedValue] = [None] * len(self.colours)
-        self.clock = Clock()
 
-    def calculate(self, gear_values: list[int], led_count: int):
+    def calculate(self, gear_values: list[int], led_count: int, delta_time: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
-
-        dt = self.clock.tick()
 
         gear_values = scale_gear_values(gear_values)
 
         for pulse in self.pulses:
             if pulse is not None:
-                pulse.tick(dt)
+                pulse.tick(delta_time)
 
         lights = [(0, 0, 0)] * led_count
 
@@ -177,12 +178,14 @@ class LayeredEffect(LedEffect):
     effects: list[LedEffect]
     blending_fn: Callable[[Colour, Colour], Colour] = add_colours
 
-    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+    def calculate(
+        self, gear_values: list[int], led_count: int, delta_time: int
+    ) -> list[Colour]:
         effects = iter(self.effects)
-        lights = next(effects).calculate(gear_values, led_count)
+        lights = next(effects).calculate(gear_values, led_count, delta_time)
 
         for effect in effects:
-            colours = effect.calculate(gear_values, led_count)
+            colours = effect.calculate(gear_values, led_count, delta_time)
             lights = [
                 self.blending_fn(light, colour)
                 for light, colour in zip(lights, colours, strict=True)

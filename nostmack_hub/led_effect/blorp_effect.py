@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 import random
 
-from pygame.time import Clock
-
 from nostmack_hub.led_effect import LedEffect, scale_gear_values
 from nostmack_hub.led_effect.animation import AnimatedValue, Animations, Dissapate, Ramp
 from nostmack_hub.led_effect.colour import Colour, add_colours, scale_colour
@@ -24,7 +22,6 @@ class BlorpEffect(LedEffect):
 
         self.seeds: list[Seed] = []
         self.time_since_last_seed_planted: int = 0
-        self.clock = Clock()
 
     def plant_new_seed(self):
         gear = random.randrange(len(self.colours))
@@ -49,14 +46,13 @@ class BlorpEffect(LedEffect):
             )
         )
 
-    def calculate(self, gear_values: list[int], led_count: int):
+    def calculate(self, gear_values: list[int], led_count: int, delta_time: int):
         assert len(gear_values) == len(
             self.colours
         ), "Received wrong number of gear values"
         assert self.led_count == led_count
 
-        dt = self.clock.tick()
-        self.time_since_last_seed_planted += dt
+        self.time_since_last_seed_planted += delta_time
 
         SEED_FREQUENCY = 50
         while self.time_since_last_seed_planted > SEED_FREQUENCY:
@@ -68,7 +64,7 @@ class BlorpEffect(LedEffect):
         layers = []
 
         for seed in self.seeds:
-            seed.animated_intensity.tick(dt)
+            seed.animated_intensity.tick(delta_time)
 
         for gear, (gear_value, colour) in enumerate(
             zip(gear_values, self.colours, strict=True)

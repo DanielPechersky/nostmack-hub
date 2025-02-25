@@ -8,8 +8,8 @@ from nostmack_hub.led_effect.colour import map_colour
 class GammaCorrection(LedEffect):
     inner: LedEffect
 
-    def calculate(self, gear_values: list[int], led_count):
-        lights = self.inner.calculate(gear_values, led_count)
+    def calculate(self, gear_values: list[int], led_count, delta_time):
+        lights = self.inner.calculate(gear_values, led_count, delta_time)
 
         lights = [
             map_colour(light, lambda channel: GAMMA_CORRECTION[channel])

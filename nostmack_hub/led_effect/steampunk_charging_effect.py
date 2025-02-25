@@ -155,7 +155,9 @@ class SteampunkChargingEffect(LedEffect):
         # Cache that ensures stable overlap color across frames:
         self._overlap_colors: dict[frozenset[int], Colour] = {}
 
-    def calculate(self, gear_values: list[int], led_count: int) -> list[Colour]:
+    def calculate(
+        self, gear_values: list[int], led_count: int, delta_time: int
+    ) -> list[Colour]:
         """
         Returns the LED strip as a list of (r, g, b).
         """
