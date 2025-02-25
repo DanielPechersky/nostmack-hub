@@ -13,6 +13,9 @@ class SeedConfig:
     dissapate_time: int
 
 
+SEED_FREQUENCY = 50
+
+
 class BlorpEffect(LedEffect):
 
     def __init__(self, colours: list[Colour], led_count: int, seed_config: SeedConfig):
@@ -21,12 +24,12 @@ class BlorpEffect(LedEffect):
         self.seed_config = seed_config
 
         self.seeds: list[Seed] = []
+        total_time = seed_config.ramp_time + seed_config.dissapate_time
+        self.max_seeds = total_time / SEED_FREQUENCY
         self.time_since_last_seed_planted: int = 0
 
     def plant_new_seed(self):
-        MAX_SEEDS = 50
-
-        if len(self.seeds) >= MAX_SEEDS:
+        if len(self.seeds) >= self.max_seeds:
             return
 
         gear = random.randrange(len(self.colours))
@@ -59,7 +62,6 @@ class BlorpEffect(LedEffect):
 
         self.time_since_last_seed_planted += delta_time
 
-        SEED_FREQUENCY = 50
         while self.time_since_last_seed_planted > SEED_FREQUENCY:
             self.plant_new_seed()
             self.time_since_last_seed_planted -= SEED_FREQUENCY
