@@ -12,7 +12,6 @@ from nostmack_hub.led_effect import (
     StripedEffect,
 )
 from nostmack_hub.led_effect import flowing_memento
-from nostmack_hub.led_effect.steampunk_charging_effect import SteampunkChargingEffect
 from nostmack_hub.led_value_calculator import LedEffectFixedCount
 from preview.init_machine import init_machine
 from preview.draw_leds import draw_coloured_line
@@ -43,7 +42,6 @@ EFFECTS: list[LedEffect] = [
     flowing_memento.effect(COLOURS, LED_COUNT),
     StripedEffect(COLOURS),
     SectoredEffect(COLOURS),
-    SteampunkChargingEffect(COLOURS),
 ]
 
 
