@@ -6,6 +6,7 @@ from imgui_bundle import imgui, imgui_ctx, hello_imgui
 import dotenv
 import pygame
 
+from nostmack_hub import pygame_mixer
 from nostmack_hub.led_effect import (
     LedEffect,
     SectoredEffect,
@@ -47,7 +48,7 @@ EFFECTS: list[LedEffect] = [
 
 
 async def main():
-    with init_pygame_mixer():
+    with pygame_mixer.init():
 
         selected_effect_index = 0
 
@@ -171,15 +172,6 @@ async def run_hello_imgui(gui):
         hello_imgui.manual_render.render()
         await asyncio.sleep(1 / 120)
     hello_imgui.manual_render.tear_down()
-
-
-@contextmanager
-def init_pygame_mixer():
-    pygame.mixer.init()
-    try:
-        yield
-    finally:
-        pygame.mixer.quit()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from pathlib import Path
 import pygame.mixer
 from pygame.mixer import Sound
 
-from nostmack_hub import esp_diagnostics, esp_listener
+from nostmack_hub import esp_diagnostics, esp_listener, pygame_mixer
 from nostmack_hub.cancel_on_signal import cancel_on_signal
 from nostmack_hub.led_effect import flowing_memento
 from nostmack_hub.gear import Gear
@@ -37,7 +37,7 @@ SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 
 async def main():
-    with init_pygame_mixer():
+    with pygame_mixer.init():
         COLOURS = [(255, 0, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
         esp_mapping = parse_gears(GEARS)
         sounds = list(map(Sound, SOUND_POOL.iterdir()))
@@ -70,15 +70,6 @@ async def listen_to_esps():
             diagnostics.seen(id)
 
             yield id, count
-
-
-@contextmanager
-def init_pygame_mixer():
-    pygame.mixer.init()
-    try:
-        yield
-    finally:
-        pygame.mixer.quit()
 
 
 def parse_gears(gears):
