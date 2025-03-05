@@ -29,6 +29,7 @@ def checked_getenv(var):
 WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 LED_COUNT = int(checked_getenv("LED_COUNT"))
 GEARS = checked_getenv("GEARS")
+FINALE_DURATION = int(checked_getenv("FINALE_DURATION"))
 
 SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
 SOUND_DING = Path(checked_getenv("SOUND_DING"))
@@ -57,6 +58,7 @@ async def main():
             ),
             sounds=sounds,
             finale=Sound(SOUND_FINALE),
+            finale_duration=FINALE_DURATION,
         )
 
         await machine.run()

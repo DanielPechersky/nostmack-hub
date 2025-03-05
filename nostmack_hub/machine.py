@@ -25,6 +25,7 @@ class Machine:
         effect: LedEffectFixedCount,
         sounds: Sounds,
         finale: Sound,
+        finale_duration: int,
     ):
         self.esp_mapping = esp_mapping
         self.esp_events = esp_events
@@ -32,6 +33,7 @@ class Machine:
         self.effect = effect
         self.sounds = sounds
         self.finale = finale
+        self.finale_duration = finale_duration
         self.state = MachineState()
 
     @property
@@ -93,7 +95,7 @@ class Machine:
             gear.reset()
         await self.wled.set_preset(2)
         self.finale.play()
-        await asyncio.sleep(30)
+        await asyncio.sleep(self.finale_duration)
         self.state.to_initial()
 
     async def state_tasks(self):

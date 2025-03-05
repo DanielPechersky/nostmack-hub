@@ -33,6 +33,7 @@ def checked_getenv(var):
 
 
 LED_COUNT = int(checked_getenv("LED_COUNT"))
+FINALE_DURATION = int(checked_getenv("FINALE_DURATION"))
 
 SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
 SOUND_DING = Path(checked_getenv("SOUND_DING"))
@@ -58,6 +59,7 @@ async def main():
             SOUND_POOL,
             SOUND_DING,
             SOUND_FINALE,
+            FINALE_DURATION,
         )
 
         gear_turns = {esp_id: 0.0 for esp_id, _ in machine.esp_mapping.items()}

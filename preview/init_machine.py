@@ -8,7 +8,9 @@ from nostmack_hub.sounds import Sounds
 from preview.wled_mock import WledMock
 
 
-def init_machine(effect, sound_pool: Path, sound_ding: Path, sound_finale: Path):
+def init_machine(
+    effect, sound_pool: Path, sound_ding: Path, sound_finale: Path, finale_duration: int
+):
     esp_events: list[tuple[int, int]] = []
 
     async def mock_esp_listener():
@@ -40,6 +42,7 @@ def init_machine(effect, sound_pool: Path, sound_ding: Path, sound_finale: Path)
         effect=effect,
         sounds=sounds,
         finale=Sound(sound_finale),
+        finale_duration=finale_duration,
     )
 
     return machine, esp_events, wled
