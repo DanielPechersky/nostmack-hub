@@ -17,6 +17,7 @@ class Sounds:
         try:
             for sound in sounds:
                 sound.play(loops=-1)
+                sound.set_volume(0)
             dinged = [False] * len(self.gears)
             while True:
                 await asyncio.sleep(0.1)
