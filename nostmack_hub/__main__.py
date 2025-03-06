@@ -29,6 +29,7 @@ def checked_getenv(var):
 WLED_ADDRESS = checked_getenv("WLED_ADDRESS")
 LED_COUNT = int(checked_getenv("LED_COUNT"))
 GEARS = checked_getenv("GEARS")
+COLOURS = checked_getenv("COLOURS")
 FINALE_DURATION = int(checked_getenv("FINALE_DURATION"))
 
 SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
@@ -38,7 +39,7 @@ SOUND_FINALE = Path(checked_getenv("SOUND_FINALE"))
 
 async def main():
     with pygame_mixer.init():
-        COLOURS = [(255, 0, 0), (0, 255, 0), (0, 255, 255), (0, 0, 255), (255, 0, 255)]
+        colours = parse_colours(COLOURS)
         esp_mapping = parse_gears(GEARS)
         sounds = list(map(Sound, SOUND_POOL.iterdir()))
         sounds = Sounds(
@@ -52,7 +53,7 @@ async def main():
             wled=Wled(WLED_ADDRESS),
             effect=LedEffectFixedCount(
                 GammaCorrection(
-                    flowing_memento.effect(COLOURS, LED_COUNT),
+                    flowing_memento.effect(colours, LED_COUNT),
                 ),
                 LED_COUNT,
             ),
@@ -78,6 +79,14 @@ def parse_gears(gears):
         return int(esp_id), Gear(int(sensitivity))
 
     return dict(map(parse_gear, gears.split(",")))
+
+
+def parse_colours(colours):
+    import json
+
+    colours = json.loads(colours)
+
+    return colours
 
 
 if __name__ == "__main__":

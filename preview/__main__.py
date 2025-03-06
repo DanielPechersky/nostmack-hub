@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import contextmanager
+import json
 from pathlib import Path
 
 from imgui_bundle import imgui, imgui_ctx, hello_imgui
@@ -34,6 +35,7 @@ def checked_getenv(var):
 
 
 LED_COUNT = int(checked_getenv("LED_COUNT"))
+COLOURS = json.loads(checked_getenv("COLOURS"))
 FINALE_DURATION = int(checked_getenv("FINALE_DURATION"))
 
 SOUND_POOL = Path(checked_getenv("SOUND_POOL"))
