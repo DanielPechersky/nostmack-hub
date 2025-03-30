@@ -32,6 +32,10 @@ deploy_service: && daemon_reload (systemctl "restart")
     rsync nostmack-hub.service nostmack-pi:/home/pi/
     ssh nostmack-pi 'sudo mv /home/pi/nostmack-hub.service /etc/systemd/system/nostmack-hub.service'
 
+deploy_alsa_restore_workaround: && daemon_reload
+    rsync alsa-restore-workaround.service nostmack-pi:/home/pi/
+    ssh nostmack-pi 'sudo mv /home/pi/alsa-restore-workaround.service /etc/systemd/system/alsa-restore-workaround.service'
+
 deploy_sounds: && (systemctl "restart")
     rsync --delete --exclude=.DS_Store -r sounds nostmack-pi:/home/pi/nostmack-hub/
 
