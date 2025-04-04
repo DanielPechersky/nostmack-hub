@@ -42,7 +42,7 @@ systemctl command:
     ssh nostmack-pi 'sudo systemctl {{ command }} nostmack-hub'
 
 test:
-    poetry run pytest
+    uv run pytest
 
 preview:
-    poetry run python -m preview
+    uv run python -m preview
