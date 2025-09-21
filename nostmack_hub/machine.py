@@ -114,7 +114,16 @@ class Machine:
                 print(f"Cancelling state {current_state}")
                 tasks.cancel()
 
+    async def print_gear_values(self):
+        while True:
+            gear_values = " ".join(
+                [f"gear={i},value={g.value.inner}" for i, g in self.esp_mapping.items()]
+            )
+            print(f"gear values: {gear_values}")
+            await asyncio.sleep(1)
+
     async def run(self):
         async with asyncio.TaskGroup() as tg:
             tg.create_task(self.update_effects())
             tg.create_task(self.state_tasks())
+            tg.create_task(self.print_gear_values())
